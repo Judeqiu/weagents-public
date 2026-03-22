@@ -119,7 +119,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -136,7 +136,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -153,7 +153,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -170,7 +170,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -187,7 +187,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -204,7 +204,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -221,7 +221,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -238,7 +238,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -255,7 +255,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -272,7 +272,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -289,7 +289,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -306,7 +306,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -323,7 +323,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -340,7 +340,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -357,7 +357,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -374,7 +374,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -391,7 +391,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -408,7 +408,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -425,7 +425,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -442,7 +442,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -459,7 +459,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -476,7 +476,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -493,7 +493,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -510,7 +510,7 @@ def cmd_image(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         
         # Save result to file (internal use only, not shown to user)
         if args.output:
@@ -589,7 +589,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -606,7 +606,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -623,7 +623,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -640,7 +640,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -657,7 +657,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -674,7 +674,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -691,7 +691,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -708,7 +708,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -725,7 +725,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -742,7 +742,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -759,7 +759,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -776,7 +776,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -793,7 +793,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -810,7 +810,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -827,7 +827,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -844,7 +844,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -861,7 +861,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -878,7 +878,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -895,7 +895,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -912,7 +912,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -929,7 +929,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -946,7 +946,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -963,7 +963,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         # CRITICAL: Return generated content to be posted to current channel
         # The calling system (Kimi/Claw) will handle posting to the current channel
         print("\n📤 Delivering to current channel...")
@@ -980,7 +980,7 @@ def cmd_i2i(args):
         # Print JSON output for channel integration
         print(json.dumps(output_result, indent=2))
         
-        print(f"\n✅ {result[count]} image(s) ready for channel delivery")
+        print(f"\n✅ {result['count']} image(s) ready for channel delivery")
         
         if args.output:
             with open(args.output, 'w') as f:
