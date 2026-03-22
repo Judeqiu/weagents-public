@@ -1383,7 +1383,7 @@ def cmd_story(args):
         f.write(html_content)
     print(f"   ✅ HTML saved to: {html_path}")
     
-    # Save story manifest for Netlify deployment
+    # Save story manifest for netlify-deploy skill
     manifest = {
         "type": "marketing_story",
         "title": story_structure['title'],
@@ -1423,7 +1423,7 @@ def cmd_story(args):
         "manifest": str(manifest_path.absolute()),
         "sections": len(generated_assets),
         "total_cost": total_cost,
-        "ready_for_netlify": True,
+        "ready_for_netlify": True,  # Indicates output is ready for netlify-deploy skill
     }
     
     print("\n" + "=" * 60)
@@ -1433,7 +1433,7 @@ def cmd_story(args):
     print(f"   📁 Output: {output_dir}")
     print(f"   🌐 HTML: {html_path}")
     print(f"   📋 Manifest: {manifest_path}")
-    print(f"\n🚀 Ready for Netlify deployment")
+    print(f"\n🚀 Ready for netlify-deploy skill")
     
     return 0
 

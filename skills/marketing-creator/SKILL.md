@@ -278,7 +278,7 @@ When you run the story command, it creates:
 ```
 marketing_story/                    # or your --output directory
 ├── index.html                      # Complete landing page
-├── story_manifest.json             # Metadata for Netlify deployment
+├── story_manifest.json             # Metadata for netlify-deploy skill
 └── (assets embedded via URLs)      # Images/videos from BytePlus
 ```
 
@@ -290,7 +290,7 @@ The story output is ready for Netlify deployment:
 # After generating story
 cd marketing_story
 
-# Deploy to Netlify (using netlify skill)
+# Deploy to Netlify (using netlify-deploy skill)
 netlify deploy --prod --message "Marketing story for Eco Bottle"
 ```
 
