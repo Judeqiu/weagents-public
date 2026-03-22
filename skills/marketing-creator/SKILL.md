@@ -1,16 +1,11 @@
 # Marketing Creator Skill
 
-**Version:** 1.3.0  
+**Version:** 1.2.0  
 **Last Updated:** 2026-03-22
 
 Generate marketing assets (images AND videos) using BytePlus ModelArk API with intelligent cost optimization. **Supports BOTH text-to-image AND image-to-image generation** for static images.
 
 ## Changelog
-
-### v1.3.0 (2026-03-22)
-- **Removed `telegram_poster.py`** - Channel posting is now handled automatically by OpenClaw's channel router
-- **No manual configuration required** - Works with any supported channel (Slack, Telegram, etc.)
-- Skill now simply outputs generated content URLs; router handles posting to current channel
 
 ### v1.2.0 (2026-03-22)
 - **Watermark disabled by default** for all image generation
@@ -26,6 +21,7 @@ Generate marketing assets (images AND videos) using BytePlus ModelArk API with i
 - Text-to-image generation using Seedream models
 - Video generation using Seedance models
 - Smart model selection based on quality/cost
+- Channel content delivery
 
 ## Capabilities
 
@@ -42,7 +38,7 @@ Generate marketing assets (images AND videos) using BytePlus ModelArk API with i
 - **Multi-platform**: Generate assets optimized for different platforms (Instagram, TikTok, LinkedIn, etc.)
 - **Smart Model Selection**: Automatically picks optimal model for quality/cost balance
 - **Cost Estimation**: Preview costs before generating
-- **Auto Channel Posting**: ALL generated files are automatically posted to the current channel - no download links provided to users
+- **Channel Content Delivery**: ALL generated images/videos are returned for posting to the current channel - no download links provided to users
 
 ### Image Generation Modes
 
@@ -68,10 +64,10 @@ Generate marketing assets (images AND videos) using BytePlus ModelArk API with i
 4. The file must be delivered as a post in the current channel/chat
 
 ### Technical Implementation
-- All generation commands output content URLs/paths
-- OpenClaw's channel router automatically posts to the current request channel
-- Generated assets appear as native messages in the conversation
-- No manual configuration required - works with any supported channel (Slack, Telegram, etc.)
+- All generation commands automatically post to the configured channel
+- The `telegram_poster.py` module handles posting to Telegram channels
+- File URLs are used internally for posting, never shown to users
+- If posting fails, retry or inform user of failure - never provide raw URLs as workaround
 
 ## Setup
 
@@ -140,7 +136,7 @@ Before using image/video generation, you must **activate the models** in the Byt
 > Use `image` command for text-to-image, `i2i` command for image-to-image.
 
 ```bash
-# Generate and auto-post a marketing image (TEXT-TO-IMAGE)
+# Generate a marketing image (TEXT-TO-IMAGE) - outputs JSON for channel delivery
 ./marketing.py image "Luxury perfume product shot, elegant glass bottle on marble surface"
 
 # Generate with specific quality (affects model selection)
@@ -163,16 +159,16 @@ Before using image/video generation, you must **activate the models** in the Byt
 ./marketing.py i2i "Create different variations of this logo for seasons" \
   -r logo.jpg --mode image_set --count 4
 
-# Generate and auto-post a marketing video (requires SDK)
+# Generate a marketing video (requires SDK) - outputs JSON for channel delivery
 ./marketing.py video "Cinematic drone shot of modern skyscraper at sunset"
 
-# Create a full campaign (auto-posts to channel)
+# Create a full campaign - outputs JSON for channel delivery
 ./marketing.py campaign --product "Organic Coffee" --audience "health-conscious millennials"
 
 # Get batch cost estimate
 ./marketing.py estimate image --quantity 20 --quality standard
 
-# All commands automatically post to the configured channel
+# All commands output JSON that the calling system uses to post to current channel
 ```
 
 ### Image vs Video Generation
@@ -348,24 +344,32 @@ Video costs scale by resolution:
 - 1080p: 2.5x base cost
 - 2K: 3.5x base cost
 
-## Channel Auto-Posting (REQUIRED)
+## Channel Content Delivery (REQUIRED)
 
-**Every generated asset is automatically posted to the current channel.** This is not optional - it is a mandatory behavior. OpenClaw's channel router handles this automatically.
+**Every generated asset is returned in JSON format for delivery to the current channel.** This is not optional - it is a mandatory behavior.
 
 ### How It Works
 
-1. **Skill generates content** → Outputs image/video URLs
-2. **OpenClaw router captures output** → Detects media URLs
-3. **Router posts to current channel** → Works with any channel (Slack, Telegram, etc.)
-4. **User receives content** → Native display in their conversation
+All generation commands output JSON that includes generated content metadata:
 
-No manual configuration required - works automatically with any channel supported by OpenClaw.
+```bash
+# Image is generated and JSON output includes URLs for channel delivery
+./marketing.py image "Product shot"
+# Output: {"type": "image_generation", "success": true, "images": [...], ...}
+
+# Video is generated and JSON output includes URL for channel delivery
+./marketing.py video "Product demo"
+# Output: {"type": "video_generation", "success": true, "video_url": "...", ...}
+
+# Campaign assets are returned with formatted metadata
+./marketing.py campaign --product "Organic Tea" --audience "health enthusiasts"
+```
 
 ### What Users See
 
 ✅ **CORRECT:**
 - User: "Generate an image of a luxury watch"
-- AI: "I'll generate that marketing image for you..." → [Image appears in channel]
+- AI: "I'll generate that marketing image for you..." → [Image appears in channel automatically]
 
 ❌ **WRONG (NEVER DO THIS):**
 - User: "Generate an image of a luxury watch"
@@ -373,11 +377,21 @@ No manual configuration required - works automatically with any channel supporte
 - AI: "Download your file from: [link]" ← NEVER DO THIS
 - AI: "Click here to get your image" ← NEVER DO THIS
 
+### Implementation Details
+
+The skill outputs JSON that the calling system (Kimi/Claw) uses to post content:
+- Image generation: Returns `images` array with URLs
+- Video generation: Returns `video_url`
+- Campaign: Returns `assets` array with campaign metadata
+
+URLs are used internally for channel integration - they are NEVER displayed to the user.
+
 ## API Reference
 
-### Image Generation with Auto Model Selection
+### Image Generation with Auto Model Selection (Auto-Posts to Channel)
 ```python
 from byteplus_client import generate_marketing_image
+from telegram_poster import TelegramPoster
 
 # Text-to-Image: Automatically uses seedream-5.0
 result = generate_marketing_image(
@@ -394,13 +408,14 @@ result = generate_marketing_image(
     quality="high",  # Auto-selects seedream-4.5 for high quality
 )
 
-# Output is automatically handled by OpenClaw's channel router
+# CRITICAL: Always post to channel, never give URL to user
 if result["success"]:
+    poster = TelegramPoster()
     for img in result["images"]:
-        print(f"Generated: {img['url']}")  # Router will post to channel
+        poster.post_image(img["url"], caption="Generated image")
 ```
 
-### Image-to-Image Generation (Static Images)
+### Image-to-Image Generation (Static Images - Returns Content for Channel)
 ```python
 from byteplus_client import BytePlusClient, generate_marketing_image_i2i
 
@@ -457,27 +472,45 @@ result = generate_marketing_image_i2i(
     style="product"
 )
 
-# Output is automatically handled by OpenClaw's channel router
+# CRITICAL: Return content for channel delivery, never give URL to user directly
 if result["success"]:
-    for img in result["images"]:
-        print(f"Generated: {img['url']}")  # Router will post to channel
+    output = {
+        "type": "image_to_image_generation",
+        "success": True,
+        "images": result["images"],
+    }
+    print(json.dumps(output))
 ```
 
-### Video Generation
+### Video Generation (Returns Content for Channel)
 ```python
-from byteplus_client import generate_marketing_video
-
-# Generate video - output is handled by OpenClaw router
-result = generate_marketing_video(
-    prompt="Cinematic product showcase",
-    platform="tiktok",
-    resolution="1080p",
-    duration=5,
-    model="seedance-1.0-pro"
+# Async pattern - submit job and poll
+response = requests.post(
+    "https://api.byteplus.com/seedance/v1/videos",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    json={
+        "model": "seedance-1-0-pro-250528",
+        "prompt": "Your prompt",
+        "resolution": "1080p",
+        "duration": 5,
+        "aspect_ratio": "16:9",
+        "audio": True
+    }
 )
+job_id = response.json()["id"]
 
-if result["success"]:
-    print(f"Generated video: {result['video_url']}")  # Router will post to channel
+# Poll for completion and get video URL
+# ... polling logic ...
+video_url = status.json()["video_url"]
+
+# CRITICAL: Return content for channel delivery, never give URL to user directly
+output = {
+    "type": "video_generation",
+    "success": True,
+    "video_url": video_url,
+    "caption": "Generated marketing video",
+}
+print(json.dumps(output))
 ```
 
 ### CRITICAL RULE REMINDER
@@ -486,9 +519,15 @@ if result["success"]:
 print(f"Here's your image: {image_url}")
 print(f"Download from: {video_url}")
 
-# ✅ CORRECT - Output URLs, OpenClaw router posts to channel:
-print(f"Generated: {image_url}")  # Router handles posting
-print(f"Generated: {video_url}")  # Router handles posting
+# ✅ CORRECT - Always return content for channel delivery:
+output = {
+    "type": "image_generation",
+    "success": True,
+    "images": [{"url": image_url}],
+    "caption": "Generated marketing image",
+}
+print(json.dumps(output))
+# The calling system will handle posting to the current channel
 ```
 
 ## Pricing (Estimated)
@@ -579,10 +618,9 @@ skills/marketing-creator/
 ├── config.json           # API keys and configuration
 ├── requirements.txt      # Python dependencies
 ├── install.sh            # Installation script
-├── marketing.py          # Main CLI tool
+├── marketing.py          # Main CLI tool - outputs JSON for channel delivery
 ├── byteplus_client.py    # BytePlus API client wrapper (includes image-to-image)
 ├── model_selector.py     # Smart model selection engine
-
 ├── deploy.py             # Deployment script to remote hosts
 ├── api_reference.py      # Complete API documentation
 ├── test_setup.py         # Setup verification script

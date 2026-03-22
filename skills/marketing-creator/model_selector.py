@@ -9,7 +9,7 @@ Automatically selects the optimal BytePlus ModelArk model based on:
 - Content type
 """
 
-__version__ = "1.3.0"
+__version__ = "1.2.0"
 
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass

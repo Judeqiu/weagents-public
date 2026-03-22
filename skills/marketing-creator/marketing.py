@@ -5,7 +5,7 @@ Marketing Creator - CLI Tool for Marketing Asset Generation
 Generate images and videos for marketing campaigns using BytePlus ModelArk.
 """
 
-__version__ = "1.3.0"
+__version__ = "1.2.0"
 
 import os
 import sys
@@ -43,7 +43,7 @@ def print_banner():
 
 
 def cmd_image(args):
-    """Generate marketing image."""
+    """Generate marketing image and auto-post to channel."""
     print(f"\n🎨 Generating Marketing Image")
     print(f"   Prompt: {args.prompt}")
     print(f"   Platform: {args.platform}")
@@ -101,18 +101,38 @@ def cmd_image(args):
     if result["success"]:
         print(f"\n✅ Generated {result['count']} image(s)")
         
-        # Output image URLs for OpenClaw channel router to handle posting
+        # CRITICAL: Always post to channel - NEVER show URLs to users
+        print("\n📤 Posting to channel...")
+        poster = TelegramPoster()
+        
+        if not poster.is_configured():
+            print("   ⚠️  Telegram not configured. Add bot_token and default_chat_id to config.json")
+            print("   ⚠️  Generated content could not be delivered to channel.")
+            return 1
+        
+        posted_count = 0
         for i, img in enumerate(result["images"]):
             if "url" in img:
-                print(f"\n🖼️  Image {i+1}: {img['url']}")
-            if "base64" in img:
-                print(f"\n🖼️  Image {i+1}: [base64 data]")
+                caption = args.caption if args.caption else f"🎨 Generated marketing image ({i+1}/{len(result['images'])})"
+                post_result = poster.post_image(img["url"], caption=caption, chat_id=args.telegram_chat)
+                
+                if post_result["success"]:
+                    print(f"   ✅ Posted image {i+1} to channel")
+                    posted_count += 1
+                else:
+                    print(f"   ❌ Failed to post image {i+1}: {post_result.get('error')}")
         
-        # Save result to file if requested
+        if posted_count == 0:
+            print("\n❌ Failed to post any images to channel")
+            return 1
+        
+        print(f"\n✅ Successfully delivered {posted_count} image(s) to your channel")
+        
+        # Save result to file (internal use only, not shown to user)
         if args.output:
             with open(args.output, 'w') as f:
                 json.dump(result, f, indent=2)
-            print(f"\n💾 Saved to: {args.output}")
+            print(f"💾 Also saved to: {args.output}")
     else:
         print(f"\n❌ Generation failed: {result.get('error', 'Unknown error')}")
         return 1
@@ -121,7 +141,7 @@ def cmd_image(args):
 
 
 def cmd_i2i(args):
-    """Generate image-to-image marketing asset."""
+    """Generate image-to-image marketing asset and auto-post to channel."""
     print(f"\n🎨 Image-to-Image Generation")
     print(f"   Prompt: {args.prompt}")
     print(f"   Reference Images: {len(args.reference_images)} image(s)")
@@ -167,18 +187,37 @@ def cmd_i2i(args):
     if result["success"]:
         print(f"\n✅ Generated {result['count']} image(s)")
         
-        # Output image URLs for OpenClaw channel router to handle posting
+        # CRITICAL: Always post to channel
+        print("\n📤 Posting to channel...")
+        poster = TelegramPoster()
+        
+        if not poster.is_configured():
+            print("   ⚠️  Telegram not configured. Add bot_token and default_chat_id to config.json")
+            print("   ⚠️  Generated content could not be delivered to channel.")
+            return 1
+        
+        posted_count = 0
         for i, img in enumerate(result["images"]):
             if "url" in img:
-                print(f"\n🖼️  Image {i+1}: {img['url']}")
-            if "base64" in img:
-                print(f"\n🖼️  Image {i+1}: [base64 data]")
+                caption = args.caption if args.caption else f"🎨 Generated marketing image ({i+1}/{len(result['images'])})"
+                post_result = poster.post_image(img["url"], caption=caption, chat_id=args.telegram_chat)
+                
+                if post_result["success"]:
+                    print(f"   ✅ Posted image {i+1} to channel")
+                    posted_count += 1
+                else:
+                    print(f"   ❌ Failed to post image {i+1}: {post_result.get('error')}")
         
-        # Save result to file if requested
+        if posted_count == 0:
+            print("\n❌ Failed to post any images to channel")
+            return 1
+        
+        print(f"\n✅ Successfully delivered {posted_count} image(s) to your channel")
+        
         if args.output:
             with open(args.output, 'w') as f:
                 json.dump(result, f, indent=2)
-            print(f"\n💾 Saved to: {args.output}")
+            print(f"💾 Also saved to: {args.output}")
     else:
         print(f"\n❌ Generation failed: {result.get('error', 'Unknown error')}")
         return 1
@@ -187,7 +226,7 @@ def cmd_i2i(args):
 
 
 def cmd_video(args):
-    """Generate marketing video."""
+    """Generate marketing video and auto-post to channel."""
     print(f"\n🎬 Generating Marketing Video")
     print(f"   Prompt: {args.prompt}")
     print(f"   Platform: {args.platform}")
@@ -261,15 +300,26 @@ def cmd_video(args):
     if result["success"]:
         print(f"\n✅ Video generated!")
         
-        # Output video URL for OpenClaw channel router to handle posting
+        # CRITICAL: Return generated content to be posted to current channel
         if result.get("video_url"):
-            print(f"\n🎬 Video: {result['video_url']}")
+            print("\n📤 Delivering to current channel...")
+            
+            output_result = {
+                "type": "video_generation",
+                "success": True,
+                "video_url": result["video_url"],
+                "caption": args.caption or "🎬 Generated marketing video",
+            }
+            
+            print(json.dumps(output_result, indent=2))
+            
+            print(f"\n✅ Video ready for channel delivery")
         
-        # Save result to file if requested
+        # Save result to file (internal use only, not shown to user)
         if args.output:
             with open(args.output, 'w') as f:
                 json.dump(result, f, indent=2)
-            print(f"\n💾 Saved to: {args.output}")
+            print(f"💾 Also saved to: {args.output}")
     else:
         print(f"\n❌ Generation failed: {result.get('error', 'Unknown error')}")
         return 1
@@ -278,7 +328,7 @@ def cmd_video(args):
 
 
 def cmd_campaign(args):
-    """Generate full marketing campaign."""
+    """Generate full marketing campaign and auto-post to channel."""
     print(f"\n📢 Creating Marketing Campaign")
     print(f"   Product: {args.product}")
     print(f"   Audience: {args.audience}")
@@ -315,16 +365,38 @@ def cmd_campaign(args):
     if result["success"]:
         print(f"\n✅ Campaign {asset_type} generated!")
         
-        # Output asset URL for OpenClaw channel router to handle posting
-        if asset_type == "video":
-            if result.get("video_url"):
-                print(f"\n🎬 Video: {result['video_url']}")
-        else:
-            if result.get("images") and len(result["images"]) > 0:
-                if "url" in result["images"][0]:
-                    print(f"\n🖼️  Image: {result['images'][0]['url']}")
+        # CRITICAL: Return generated content to be posted to current channel
+        print("\n📤 Delivering campaign to current channel...")
         
-        # Save campaign data
+        # Get the asset URL
+        if asset_type == "video":
+            asset_url = result.get("video_url")
+            assets = [{"url": asset_url, "type": "video"}] if asset_url else []
+        else:
+            assets = result.get("images", [])
+        
+        if assets:
+            output_result = {
+                "type": "campaign",
+                "success": True,
+                "asset_type": asset_type,
+                "assets": assets,
+                "campaign_info": {
+                    "product": args.product,
+                    "audience": args.audience,
+                    "platform": args.platform,
+                    "headline": campaign_concept.get("headline"),
+                    "tagline": campaign_concept.get("tagline"),
+                },
+            }
+            
+            print(json.dumps(output_result, indent=2))
+            
+            print(f"\n✅ Campaign ready for channel delivery")
+        else:
+            print("   ⚠️  No asset URL available")
+            return 1
+        
         campaign = {
             "product": args.product,
             "audience": args.audience,
@@ -334,11 +406,11 @@ def cmd_campaign(args):
             "asset": result,
         }
         
-        # Save full campaign
+        # Save full campaign (internal use only, not shown to user)
         output_file = args.output or f"campaign_{args.product.lower().replace(' ', '_')}.json"
         with open(output_file, 'w') as f:
             json.dump(campaign, f, indent=2)
-        print(f"\n💾 Saved to: {output_file}")
+        print(f"💾 Also saved to: {output_file}")
     else:
         print(f"\n❌ Generation failed: {result.get('error', 'Unknown error')}")
         return 1
@@ -428,6 +500,7 @@ def cmd_version(args):
     print("   ✅ Image-to-Image (Seedream 4.0/4.5)")
     print("   ✅ Video Generation (Seedance)")
     print("   ✅ Smart Model Selection")
+    print("   ✅ Channel Content Delivery")
     
     # Show available commands
     print("\n🛠️  Commands:")
@@ -551,18 +624,19 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s image "Luxury watch on marble surface, golden hour lighting"
-  %(prog)s image "Product shot" --quality draft --estimate
-  %(prog)s i2i "Remove background, keep product" -r product.jpg
-  %(prog)s i2i "Apply anime style" -r photo.jpg --mode style_transfer
-  %(prog)s i2i "Combine elements" -r img1.jpg img2.jpg --mode fusion
-  %(prog)s i2i "Create variations" -r logo.jpg --mode image_set --count 4
-  %(prog)s video "Product showcase" --platform tiktok --duration 8
-  %(prog)s video "Ad creative" --quality high --estimate
-  %(prog)s video "Demo" --caption "New product!"
-  %(prog)s estimate image --quantity 10 --quality standard
-  %(prog)s campaign --product "Coffee" --audience "millennials"
+  %(prog)s image "Luxury watch on marble surface, golden hour lighting"     # Auto-posts
+  %(prog)s image "Product shot" --quality draft --estimate                   # Preview cost
+  %(prog)s i2i "Remove background, keep product" -r product.jpg              # Edit image
+  %(prog)s i2i "Apply anime style" -r photo.jpg --mode style_transfer        # Style transfer
+  %(prog)s i2i "Combine elements" -r img1.jpg img2.jpg --mode fusion         # Multi-image fusion
+  %(prog)s i2i "Create variations" -r logo.jpg --mode image_set --count 4    # Generate image set
+  %(prog)s video "Product showcase" --platform tiktok --duration 8           # Auto-posts
+  %(prog)s video "Ad creative" --quality high --estimate                     # Preview cost
+  %(prog)s video "Demo" --caption "New product!"                             # Auto-posts with caption
+  %(prog)s estimate image --quantity 10 --quality standard                   # Batch cost estimate
+  %(prog)s campaign --product "Coffee" --audience "millennials"              # Auto-posts
   %(prog)s models
+  %(prog)s version                                                         # Show version
         """
     )
     
@@ -602,6 +676,8 @@ Examples:
     img_parser.add_argument("--output", "-o", help="Output JSON file")
     img_parser.add_argument("--verbose", "-v", action="store_true",
                           help="Show detailed selection reasoning")
+    img_parser.add_argument("--caption", help="Caption text for channel post")
+    img_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
     # Image-to-Image command
     i2i_parser = subparsers.add_parser("i2i", help="Generate image from reference image(s) (Image-to-Image)")
@@ -628,6 +704,8 @@ Examples:
     i2i_parser.add_argument("--count", type=int, default=1,
                           help="Number of images to generate (default: 1, max 14 for image_set)")
     i2i_parser.add_argument("--output", "-o", help="Output JSON file")
+    i2i_parser.add_argument("--caption", help="Caption text for channel post")
+    i2i_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
     # Video command
     vid_parser = subparsers.add_parser("video", help="Generate marketing video")
@@ -657,6 +735,8 @@ Examples:
     vid_parser.add_argument("--output", "-o", help="Output JSON file")
     vid_parser.add_argument("--verbose", "-v", action="store_true",
                           help="Show detailed selection reasoning")
+    vid_parser.add_argument("--caption", help="Caption text for channel post")
+    vid_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
     # Campaign command
     camp_parser = subparsers.add_parser("campaign", help="Generate full marketing campaign")
@@ -672,6 +752,7 @@ Examples:
     camp_parser.add_argument("--duration", type=int, default=5,
                           help="Video duration (if --video)")
     camp_parser.add_argument("--output", "-o", help="Output JSON file")
+    camp_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
     # Status command
     status_parser = subparsers.add_parser("status", help="Check video generation status")
