@@ -145,7 +145,7 @@ class BytePlusClient:
                 sequential_image_generation="disabled",
                 response_format=response_format,
                 stream=False,
-                watermark=watermark,
+                watermark=False,
             )
             
             results = []
