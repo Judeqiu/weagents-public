@@ -1,7 +1,13 @@
 # Marketing Creator Skill
 
-**Version:** 1.4.0  
+**Version:** 1.5.0  
 **Last Updated:** 2026-03-22
+
+### v1.5.0 (2026-03-22)
+- **Product Photo Integration** - Build stories around your own product images
+  - `--reference-image` flag to use your product photos as reference
+  - `--use-original` flag to use original image directly in Solution section
+  - Image-to-image generation creates consistent product variations across story sections
 
 ### v1.4.0 (2026-03-22)
 - **Marketing Story Generator** - New `story` command creates cohesive multi-page marketing narratives
@@ -195,6 +201,13 @@ Create cohesive multi-page marketing narratives with AI-generated landing pages,
 # Generate a 4-page marketing story (default)
 ./marketing.py story --product "Eco-Friendly Water Bottle" --theme sustainable-adventure
 
+# Build story around your product photo
+./marketing.py story --product "Smart Watch" --theme tech-innovation --reference-image ./product-photo.jpg
+
+# Use original photo in Solution section, generate variations for other sections
+./marketing.py story --product "Luxury Skincare" --theme luxury-lifestyle \
+  --reference-image ./product.jpg --use-original
+
 # Preview cost before generating
 ./marketing.py story --product "Smart Watch" --theme tech-innovation --estimate
 
@@ -217,6 +230,35 @@ Create cohesive multi-page marketing narratives with AI-generated landing pages,
 | `tech-innovation` | Dark blue, cyan accents | Tech/gadget products |
 | `wellness-health` | Soft greens, warm neutrals | Health/wellness products |
 | `family-home` | Warm browns, cozy feel | Family/home products |
+
+### Building Stories Around Your Product Photos
+
+You can attach your own product photos and the story will be built around them:
+
+```bash
+# Use your product photo as reference for all sections
+./marketing.py story --product "My Product" --reference-image ./my-product.jpg
+
+# Use multiple reference images
+./marketing.py story --product "My Product" \
+  --reference-image ./product-front.jpg \
+  --reference-image ./product-in-use.jpg
+
+# Use original image directly in Solution section (no generation)
+./marketing.py story --product "My Product" \
+  --reference-image ./product.jpg \
+  --use-original
+```
+
+**How it works:**
+- **Without `--reference-image`**: AI generates all visuals from text prompts
+- **With `--reference-image`**: Uses image-to-image generation to create variations of your product
+- **With `--use-original`**: Uses your original photo for the Solution section, generates variations for other sections
+
+**Best practices:**
+- Use clear, well-lit product photos
+- The AI will maintain product identity while adapting to different contexts
+- Works with URLs (`https://...`) or local file paths
 
 ### Story Structure (Sections)
 

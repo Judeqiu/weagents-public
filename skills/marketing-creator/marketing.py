@@ -5,7 +5,7 @@ Marketing Creator - CLI Tool for Marketing Asset Generation
 Generate images and videos for marketing campaigns using BytePlus ModelArk.
 """
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 import os
 import sys
@@ -1264,6 +1264,13 @@ def cmd_story(args):
     print(f"   Theme: {args.theme}")
     print(f"   Pages/Sections: {args.pages}")
     print(f"   Include Video: {args.include_video}")
+    
+    # Handle reference images
+    reference_images = args.reference_image if args.reference_image else []
+    if reference_images:
+        print(f"   Reference Images: {len(reference_images)}")
+        for i, img in enumerate(reference_images, 1):
+            print(f"      [{i}] {img}")
     print("=" * 60)
     
     # Generate story structure based on product and theme
@@ -1279,24 +1286,65 @@ def cmd_story(args):
     for i, section in enumerate(story_structure['sections'], 1):
         print(f"\n📄 Section {i}/{len(story_structure['sections'])}: {section['name']}")
         print(f"   Purpose: {section['purpose']}")
-        print(f"   Generating visual...")
         
-        # Generate image for this section
-        img_result = generate_marketing_image(
-            prompt=section['visual_prompt'],
-            platform=args.platform,
-            style=args.style,
-            quality=args.quality,
-        )
+        # Determine if we should use original image or generate
+        use_original = args.use_original and reference_images and section['name'] == 'Solution'
         
-        if img_result["success"]:
-            section['image'] = img_result['images'][0] if img_result['images'] else None
-            section['image_cost'] = 0.035  # Approximate cost
-            total_cost += 0.035
-            print(f"   ✅ Image generated")
+        if use_original:
+            # Use the first reference image directly for Solution section
+            print(f"   Using original product photo...")
+            section['image'] = {'url': reference_images[0], 'prompt': section['visual_prompt']}
+            section['image_cost'] = 0
+            section['is_original'] = True
+            print(f"   ✅ Original image used")
+        elif reference_images:
+            # Use image-to-image generation with reference
+            print(f"   Generating visual with product reference (image-to-image)...")
+            
+            # Adjust prompt based on section purpose
+            i2i_prompt = f"{section['visual_prompt']}, featuring the product from the reference image"
+            if section['name'] == 'Hero':
+                i2i_prompt = f"Dramatic hero shot, product showcase, {section['visual_prompt']}, professional advertising photography"
+            elif section['name'] == 'Benefits':
+                i2i_prompt = f"Lifestyle scene showing benefits, person using product, {section['visual_prompt']}"
+            elif section['name'] == 'Social Proof':
+                i2i_prompt = f"Happy customers with product, authentic testimonial scene, {section['visual_prompt']}"
+            
+            img_result = generate_marketing_image_i2i(
+                prompt=i2i_prompt,
+                reference_images=reference_images,
+                mode="single",
+                platform=args.platform,
+                style=args.style,
+                quality=args.quality,
+            )
+            
+            if img_result["success"]:
+                section['image'] = img_result['images'][0] if img_result['images'] else None
+                section['image_cost'] = 0.04  # I2I cost
+                total_cost += 0.04
+                print(f"   ✅ Image generated from reference")
+            else:
+                print(f"   ❌ Image generation failed: {img_result.get('error', 'Unknown')}")
+                section['image'] = None
         else:
-            print(f"   ❌ Image failed: {img_result.get('error', 'Unknown')}")
-            section['image'] = None
+            # Standard text-to-image generation
+            print(f"   Generating visual...")
+            img_result = generate_marketing_image(
+                prompt=section['visual_prompt'],
+                platform=args.platform,
+                style=args.style,
+                quality=args.quality,
+            )
+            
+            if img_result["success"]:
+                section['image'] = img_result['images'][0] if img_result['images'] else None
+                section['image_cost'] = 0.035  # Approximate cost
+                total_cost += 0.035
+                print(f"   ✅ Image generated")
+            else:
+                print(f"   ❌ Image failed: {img_result.get('error', 'Unknown')}")
+                section['image'] = None
         
         # Generate video if requested and this is a key section (hero or CTA)
         if args.include_video and section.get('include_video') and not args.estimate:
@@ -1341,6 +1389,8 @@ def cmd_story(args):
         "title": story_structure['title'],
         "product": args.product,
         "theme": args.theme,
+        "reference_images": reference_images,
+        "use_original": args.use_original,
         "sections": len(generated_assets),
         "total_cost": total_cost,
         "output_dir": str(output_dir.absolute()),
@@ -1352,6 +1402,7 @@ def cmd_story(args):
                 "body": s['body_text'],
                 "image_url": s.get('image', {}).get('url') if s.get('image') else None,
                 "video_url": s.get('video'),
+                "is_original": s.get('is_original', False),
             }
             for s in generated_assets
         ]
@@ -2046,6 +2097,10 @@ Examples:
     story_parser.add_argument("--estimate", action="store_true",
                           help="Show cost estimate only - do not generate")
     story_parser.add_argument("--output", "-o", help="Output directory (default: ./marketing_story)")
+    story_parser.add_argument("--reference-image", "-r", action="append",
+                          help="Reference product image(s) to build story around (URL or file path). Can be used multiple times for multiple images.")
+    story_parser.add_argument("--use-original", action="store_true",
+                          help="Use the original reference image directly in the story ( Solution section) without generating variations")
     
     # Status command
     status_parser = subparsers.add_parser("status", help="Check video generation status")

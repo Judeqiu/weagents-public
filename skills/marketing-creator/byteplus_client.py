@@ -4,7 +4,7 @@ BytePlus ModelArk API Client Wrapper
 Handles image and video generation with proper error handling and retry logic.
 """
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 import os
 import json
