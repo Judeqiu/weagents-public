@@ -226,6 +226,91 @@ python3 ~/.openclaw/workspace/skills/mychrome/scripts/chrome_cdp_helper.py \
 
 ---
 
+## 🚀 Smart Fetch Scripts (RECOMMENDED)
+
+The easiest way to retrieve content or screenshots is using the **smart fetch scripts**, which automatically try all available methods until one succeeds.
+
+### fetch_content.sh - Smart Content Retrieval
+
+Automatically tries all browser methods in order:
+1. **agent-browser** (local, fastest)
+2. **mychrome** (Chrome CDP)
+3. **Browserless API** (cloud fallback)
+4. **curl** (simple HTTP)
+
+```bash
+# Fetch content (auto-selects best method)
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com
+
+# Save to file
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com \
+  --output /tmp/content.html
+
+# Verbose mode to see which method was used
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com \
+  --verbose
+
+# Force specific method
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com \
+  --method browserless
+```
+
+### fetch_screenshot.sh - Smart Screenshot Capture
+
+Same smart fallback logic for screenshots:
+
+```bash
+# Capture screenshot
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
+  --url https://example.com \
+  --output /tmp/screenshot.png
+
+# Full page screenshot
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
+  --url https://example.com \
+  --output /tmp/full.png \
+  --full-page
+
+# Mobile viewport
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
+  --url https://example.com \
+  --output /tmp/mobile.png \
+  --width 375 --height 812
+```
+
+### Why Use Smart Fetch?
+
+| Benefit | Description |
+|---------|-------------|
+| **Zero config** | Works out of the box, tries all methods automatically |
+| **Resilient** | If one method fails, automatically tries the next |
+| **Fast** | Uses fastest available method first |
+| **Reliable** | Always falls back to Browserless API (cloud) if needed |
+
+### Example Output
+
+```
+$ ./fetch_content.sh --url https://example.com --verbose
+Fetching: https://example.com
+
+[INFO] Trying agent-browser...
+[INFO] agent-browser failed
+[INFO] Trying mychrome...
+[INFO] mychrome failed
+[INFO] Trying Browserless API...
+[INFO] Browserless succeeded
+
+✓ Success using: browserless
+```
+
+---
+
+---
+
 ### Option 2: Browserless API - LAST RESORT
 
 When neither agent-browser nor mychrome works (no Chrome available, incompatible system, or remote environment without browser access), use **Browserless** cloud-hosted browser automation.
@@ -363,3 +448,16 @@ agent-browser --max-output 50000 snapshot
 | `AGENT_BROWSER_DEFAULT_TIMEOUT` | Default timeout in ms (default: 25000) |
 | `AGENT_BROWSER_HEADED` | Show browser window for debugging |
 | `AGENT_BROWSER_ANNOTATE` | Annotated screenshots with labels |
+
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `scripts/fetch_content.sh` | **Smart content retrieval** - tries all methods automatically (RECOMMENDED) |
+| `scripts/fetch_screenshot.sh` | **Smart screenshot capture** - tries all methods automatically (RECOMMENDED) |
+| `scripts/browserless_helper.sh` | Browserless API helper for cloud browser automation |
+| `scripts/setup_browserless.sh` | Setup script for Browserless configuration |
+| `install.sh` | Installation script for agent-browser npm package |
+| `SKILL.md` | This documentation |
