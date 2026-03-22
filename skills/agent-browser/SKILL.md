@@ -176,7 +176,11 @@ agent-browser diff screenshot --baseline before.png
 agent-browser diff url https://v1.com https://v2.com
 ```
 
-## Alternative: mychrome (Chrome CDP)
+## Alternative Methods
+
+When agent-browser (bundled Chromium) doesn't work, you have two fallback options:
+
+### Option 1: mychrome (Chrome CDP) - RECOMMENDED
 
 For use cases requiring **real Google Chrome** with persistent sessions, use the **mychrome** skill instead.
 
@@ -219,6 +223,95 @@ python3 ~/.openclaw/workspace/skills/mychrome/scripts/chrome_cdp_helper.py \
 | **Best For** | Quick tasks, testing | Automation with login state |
 
 **Tip:** Start with `agent-browser` for quick tasks. Switch to `mychrome` when you need persistent sessions or real Chrome behavior.
+
+---
+
+### Option 2: Browserless API - LAST RESORT
+
+When neither agent-browser nor mychrome works (no Chrome available, incompatible system, or remote environment without browser access), use **Browserless** cloud-hosted browser automation.
+
+#### What is Browserless?
+
+Browserless provides cloud-hosted browser automation via API:
+- **No local browser installation required**
+- **REST API** for simple operations (screenshots, PDFs, content)
+- **WebSocket API** for full Puppeteer/Playwright control
+- **Multiple regions** (US West, Europe UK, Amsterdam)
+
+#### Browserless REST API (Simple Operations)
+
+```bash
+# Set your token (provided by admin)
+export BROWSERLESS_TOKEN="your-token-here"
+
+# Take screenshot
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh screenshot \
+  --url https://example.com \
+  --output /tmp/screenshot.png
+
+# Extract page content
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh content \
+  --url https://example.com
+
+# Generate PDF
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh pdf \
+  --url https://example.com \
+  --output /tmp/page.pdf
+
+# Check API status
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh status
+```
+
+#### Browserless WebSocket (Full Control)
+
+```bash
+# Connect via WebSocket for full Puppeteer/Playwright control
+export BROWSERLESS_TOKEN="your-token-here"
+export BROWSERLESS_WS_URL="wss://production-sfo.browserless.io/chrome"
+
+# Run script with browserless
+node scripts/browserless_ws_example.js
+```
+
+#### Browserless Regions
+
+| Region | URL | Best For |
+|--------|-----|----------|
+| US West | `production-sfo.browserless.io` | Americas, Asia-Pacific |
+| Europe UK | `production-lon.browserless.io` | UK, Western Europe |
+| Amsterdam | `production-ams.browserless.io` | Europe, Africa |
+
+#### When to Use Each Method
+
+| Scenario | Recommended Tool | Why |
+|----------|------------------|-----|
+| Local quick tasks | **agent-browser** | Fast, no external dependencies |
+| Persistent login sessions | **mychrome** | Chrome profile persists across sessions |
+| Sites requiring real Chrome | **mychrome** | Uses actual Google Chrome binary |
+| No Chrome/CDP available locally | **Browserless** | Cloud-hosted, no local browser needed |
+| Remote server without browser | **Browserless** | Works anywhere with HTTP access |
+| ARM/unsupported architecture | **Browserless** | Cloud handles browser execution |
+| Blocked by corporate firewall | **Browserless** | Uses standard HTTPS (port 443) |
+
+#### Browserless Token Setup
+
+```bash
+# Set your Browserless API token (get from admin or https://www.browserless.io/)
+export BROWSERLESS_TOKEN="your-token-here"
+
+# Optional: Choose region (default: sfo)
+export BROWSERLESS_REGION="sfo"  # Options: sfo, lon, ams
+
+# Add to ~/.bashrc to make permanent
+echo 'export BROWSERLESS_TOKEN="your-token-here"' >> ~/.bashrc
+```
+
+#### Browserless Pricing
+
+- **Free tier**: Limited daily requests
+- **Paid plans**: Scale with usage
+- **Enterprise**: Custom plans available
+- Contact admin for organization token
 
 ---
 
