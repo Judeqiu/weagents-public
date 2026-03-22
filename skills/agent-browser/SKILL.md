@@ -101,6 +101,21 @@ npx agent-browser open example.com
 agent-browser install --with-deps
 ```
 
+### Linux/VPS Configuration
+
+On Ubuntu 23.10+ and some Linux distributions, Chrome requires additional configuration:
+
+```bash
+# Option 1: Use --no-sandbox flag (recommended for VPS/containers)
+agent-browser --args "--no-sandbox" open example.com
+
+# Option 2: Set environment variable (permanent solution)
+export AGENT_BROWSER_ARGS="--no-sandbox"
+# Add to ~/.bashrc to make permanent
+```
+
+**Why:** Modern Linux distributions restrict unprivileged user namespaces with AppArmor. The `--no-sandbox` flag is required for Chrome to run in these environments.
+
 ## Implementation
 
 ### Basic Workflow Example
