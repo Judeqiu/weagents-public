@@ -29,12 +29,31 @@ def load_config() -> Dict[str, Any]:
     return {}
 
 
+def encode_image_to_base64(image_path: str) -> str:
+    """Encode a local image file to base64 data URL."""
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+    
+    # Determine MIME type from extension
+    ext = Path(image_path).suffix.lower()
+    mime_types = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+    }
+    mime_type = mime_types.get(ext, 'image/jpeg')
+    
+    b64_data = base64.b64encode(image_data).decode('utf-8')
+    return f"data:{mime_type};base64,{b64_data}"
+
+
 class BytePlusClient:
     """Client for BytePlus ModelArk API - Image and Video Generation (SDK Only)"""
     
     # Base URLs
     BASE_URL_V3 = "https://ark.ap-southeast.bytepluses.com/api/v3"
-    SEEDANCE_BASE_URL = "https://ark.ap-southeast.bytepluses.com/api/v3"
     
     # Available models (from BytePlus API /models endpoint)
     IMAGE_MODELS = {
@@ -99,8 +118,6 @@ class BytePlusClient:
         response_format: str = "url",
         watermark: bool = False,
         n: int = 1,
-        image_urls: Optional[List[str]] = None,
-        sequential_image_generation: str = "disabled",
     ) -> Dict[str, Any]:
         """
         Generate images using Seedream models (SDK only).
@@ -113,8 +130,6 @@ class BytePlusClient:
             response_format: "url" or "b64_json"
             watermark: Whether to add watermark
             n: Number of images to generate (1-4)
-            image_urls: List of reference image URLs for image-to-image generation (Seedream 4.0/4.5)
-            sequential_image_generation: "disabled" (single image) or "auto" (image set generation)
             
         Returns:
             Dict containing generation results with 'url' or 'base64' key
@@ -122,23 +137,11 @@ class BytePlusClient:
         model_id = self.IMAGE_MODELS.get(model, model)
         
         try:
-            # Build parameters
-            params = {
-                "model": model_id,
-                "prompt": prompt,
-                "size": size,
-            }
-            
-            # Add optional parameters for image-to-image
-            if image_urls:
-                # For I2I, we need to use the API differently
-                # The SDK may support this via extra_body or similar
-                params["extra_body"] = {
-                    "image_urls": image_urls,
-                    "sequential_image_generation": sequential_image_generation,
-                }
-            
-            response = self._client.images.generate(**params)
+            response = self._client.images.generate(
+                model=model_id,
+                prompt=prompt,
+                size=size,
+            )
             
             results = []
             for item in response.data:
@@ -159,6 +162,115 @@ class BytePlusClient:
             return {
                 "success": False,
                 "error": str(e),
+                "prompt": prompt,
+                "model": model,
+            }
+    
+    def generate_image_i2i(
+        self,
+        prompt: str,
+        reference_images: List[str],
+        model: str = "seedream-4.0",
+        size: str = "2K",
+        mode: str = "single",
+        n: int = 1,
+    ) -> Dict[str, Any]:
+        """
+        Generate images using Image-to-Image (SDK only).
+        
+        Uses Seedream 4.0 or 4.5 which support I2I generation.
+        Reference images can be URLs or local file paths.
+        
+        Args:
+            prompt: Text description of desired output
+            reference_images: List of image URLs or local file paths (1-10 images)
+            model: Model to use (seedream-4.0 or seedream-4.5)
+            size: Output image size
+            mode: Generation mode (single, fusion, style_transfer, edit, subject_preservation, image_set)
+            n: Number of images to generate
+            
+        Returns:
+            Dict containing generation results
+        """
+        # Validate model
+        if model not in ["seedream-4.0", "seedream-4.5"]:
+            return {
+                "success": False,
+                "error": f"Model '{model}' does not support image-to-image. Use 'seedream-4.0' or 'seedream-4.5'",
+                "supported_models": ["seedream-4.0", "seedream-4.5"],
+            }
+        
+        if not reference_images:
+            return {
+                "success": False,
+                "error": "At least one reference image is required for image-to-image generation",
+            }
+        
+        if len(reference_images) > 10:
+            return {
+                "success": False,
+                "error": f"Too many reference images. Maximum is 10, got {len(reference_images)}",
+            }
+        
+        model_id = self.IMAGE_MODELS.get(model, model)
+        
+        try:
+            # Process reference images - convert local files to base64 URLs
+            processed_images = []
+            for img_path in reference_images:
+                if img_path.startswith(('http://', 'https://', 'data:')):
+                    # Already a URL or data URL
+                    processed_images.append(img_path)
+                elif os.path.exists(img_path):
+                    # Local file - convert to base64
+                    processed_images.append(encode_image_to_base64(img_path))
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Reference image not found: {img_path}",
+                    }
+            
+            # Determine sequential mode based on generation mode
+            sequential_mode = "auto" if mode == "image_set" else "disabled"
+            
+            # Build extended prompt with mode instruction
+            extended_prompt = prompt
+            if mode == "style_transfer":
+                extended_prompt = f"Apply the style from the reference image to: {prompt}"
+            elif mode == "edit":
+                extended_prompt = f"Edit the reference image: {prompt}"
+            elif mode == "fusion":
+                extended_prompt = f"Combine the reference images: {prompt}"
+            
+            # Call API with image_urls parameter for I2I
+            response = self._client.images.generate(
+                model=model_id,
+                prompt=extended_prompt,
+                size=size,
+                extra_body={
+                    "image_urls": processed_images,
+                    "sequential_image_generation": sequential_mode,
+                }
+            )
+            
+            results = []
+            for item in response.data:
+                results.append({
+                    "prompt": prompt,
+                    "model": model,
+                    "url": item.url,
+                })
+            
+            return {
+                "success": True,
+                "count": len(results),
+                "images": results,
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Image-to-image generation failed: {str(e)}",
                 "prompt": prompt,
                 "model": model,
             }
@@ -188,7 +300,7 @@ class BytePlusClient:
             duration: Video duration in seconds (4-15)
             aspect_ratio: Frame aspect ratio (16:9, 9:16, 1:1, 4:3)
             audio: Enable native audio generation
-            reference_images: Optional list of image file paths for image-to-video
+            reference_images: Optional list of image file paths or URLs for image-to-video
             negative_prompt: Elements to exclude from generation
             style: Visual style preset (cinematic, anime, realistic, 3d_render)
             seed: Reproducibility seed
@@ -220,21 +332,30 @@ class BytePlusClient:
             }
         
         try:
-            # Build content
+            # Build content array for the request
             content = [{"type": "text", "text": prompt}]
             
-            # Add reference images if provided
+            # Add reference images if provided (convert local files to base64)
             if reference_images:
                 for img_path in reference_images:
-                    if not os.path.exists(img_path):
+                    if img_path.startswith(('http://', 'https://', 'data:')):
+                        # URL provided directly
+                        content.append({
+                            "type": "image_url",
+                            "image_url": {"url": img_path}
+                        })
+                    elif os.path.exists(img_path):
+                        # Local file - convert to base64 data URL
+                        data_url = encode_image_to_base64(img_path)
+                        content.append({
+                            "type": "image_url",
+                            "image_url": {"url": data_url}
+                        })
+                    else:
                         return {
                             "success": False,
                             "error": f"Reference image not found: {img_path}"
                         }
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {"url": f"file://{img_path}"}
-                    })
             
             # Create task
             print(f"  Submitting video generation task...")
@@ -313,6 +434,87 @@ class BytePlusClient:
         except Exception as e:
             return {"error": str(e)}
     
+    def edit_image(
+        self,
+        prompt: str,
+        image_path: str,
+        model: str = "seedream-4.0",
+        size: str = "2K",
+    ) -> Dict[str, Any]:
+        """Edit an image - add, remove, or modify elements."""
+        return self.generate_image_i2i(
+            prompt=prompt,
+            reference_images=[image_path],
+            model=model,
+            size=size,
+            mode="edit",
+            n=1,
+        )
+    
+    def style_transfer(
+        self,
+        content_prompt: str,
+        style_image: str,
+        model: str = "seedream-4.0",
+        size: str = "2K",
+    ) -> Dict[str, Any]:
+        """Transfer style from reference image to new content."""
+        return self.generate_image_i2i(
+            prompt=content_prompt,
+            reference_images=[style_image],
+            model=model,
+            size=size,
+            mode="style_transfer",
+            n=1,
+        )
+    
+    def generate_variations(
+        self,
+        reference_image: str,
+        prompt: str = "Generate variations of this image with different angles and lighting",
+        model: str = "seedream-4.0",
+        n: int = 4,
+        size: str = "2K",
+    ) -> Dict[str, Any]:
+        """Generate variations of a reference image while preserving the subject."""
+        if n > 14:
+            return {
+                "success": False,
+                "error": "Maximum 14 variations allowed",
+            }
+        
+        return self.generate_image_i2i(
+            prompt=prompt,
+            reference_images=[reference_image],
+            model=model,
+            size=size,
+            mode="image_set" if n > 1 else "single",
+            n=n,
+        )
+    
+    def fuse_images(
+        self,
+        images: List[str],
+        prompt: str,
+        model: str = "seedream-4.0",
+        size: str = "2K",
+    ) -> Dict[str, Any]:
+        """Fuse multiple images into a single cohesive image."""
+        if len(images) < 2:
+            return {
+                "success": False,
+                "error": "At least 2 images required for fusion",
+            }
+        
+        return self.generate_image_i2i(
+            prompt=prompt,
+            reference_images=images,
+            model=model,
+            size=size,
+            mode="fusion",
+            n=1,
+        )
+
 
 # Convenience functions for direct use
 def generate_marketing_image(
@@ -321,26 +523,11 @@ def generate_marketing_image(
     style: str = "cinematic",
     model: str = "auto",
     quality: str = "standard",
-    image_urls: Optional[List[str]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
     Generate a marketing image optimized for a specific platform.
-    
-    Automatically selects the right model based on:
-    - If image_urls provided: uses seedream-4.0/4.5 (image-to-image capable)
-    - If text-to-image: uses seedream-5.0 or quality-appropriate model
-    
-    Args:
-        prompt: Base description of the image
-        platform: Target platform for size/aspect optimization
-        style: Visual style preset
-        model: Model to use ("auto" for auto-selection)
-        quality: Quality level for auto-selection
-        image_urls: Optional reference images for image-to-image generation
-        **kwargs: Additional arguments passed to generate_image()
     """
-    # Import here to avoid circular dependency issues
     try:
         from model_selector import ModelSelector, QualityLevel
         HAS_SELECTOR = True
@@ -381,49 +568,87 @@ def generate_marketing_image(
     
     size = kwargs.pop("size", size_map.get(platform, "1024x1024"))
     
-    client = BytePlusClient()
-    
     # Auto-select model if needed
     if model == "auto":
         if HAS_SELECTOR:
             selector = ModelSelector()
             quality_enum = QualityLevel(quality)
-            
-            if image_urls:
-                # Use image-to-image model selection
-                selection = selector.select_i2i_model(
-                    quality=quality_enum,
-                    platform=platform,
-                    num_reference_images=len(image_urls),
-                )
-                model = selection["model_key"]
-            else:
-                # Use standard image model selection
-                selection = selector.select_image_model(
-                    quality=quality_enum,
-                    platform=platform,
-                )
-                model = selection["model_key"]
+            selection = selector.select_image_model(
+                quality=quality_enum,
+                platform=platform,
+            )
+            model = selection["model_key"]
         else:
-            # Fallback without selector
-            model = "seedream-4.0" if image_urls else "seedream-5.0"
+            model = "seedream-5.0"
     
-    # Generate with appropriate method
-    if image_urls:
-        return client.generate_image_to_image(
-            prompt=enhanced_prompt,
-            reference_images=image_urls,
-            model=model,
-            size=size,
-            **kwargs
-        )
-    else:
-        return client.generate_image(
-            prompt=enhanced_prompt,
-            model=model,
-            size=size,
-            **kwargs
-        )
+    client = BytePlusClient()
+    return client.generate_image(
+        prompt=enhanced_prompt,
+        model=model,
+        size=size,
+        **kwargs
+    )
+
+
+def generate_marketing_image_i2i(
+    prompt: str,
+    reference_images: List[str],
+    mode: str = "single",
+    platform: str = "instagram",
+    style: str = "cinematic",
+    model: str = "auto",
+    quality: str = "standard",
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Generate marketing image using image-to-image (reference-based generation).
+    """
+    # Platform-specific sizes
+    size_map = {
+        "instagram": "1024x1024",
+        "tiktok": "1080x1920",
+        "linkedin": "1200x627",
+        "twitter": "1200x675",
+        "youtube": "1280x720",
+    }
+    
+    # Style enhancements
+    style_prompts = {
+        "cinematic": "cinematic lighting, film grain, professional color grading",
+        "product": "product photography, clean background, soft shadows",
+        "lifestyle": "authentic lifestyle shot, natural lighting",
+        "minimal": "minimalist composition, clean lines, negative space",
+    }
+    
+    enhanced_prompt = prompt
+    if style in style_prompts:
+        enhanced_prompt += f", {style_prompts[style]}"
+    
+    size = kwargs.pop("size", size_map.get(platform, "1024x1024"))
+    
+    # Auto-select model if needed
+    if model == "auto":
+        try:
+            from model_selector import ModelSelector, QualityLevel
+            selector = ModelSelector()
+            quality_enum = QualityLevel(quality)
+            
+            if len(reference_images) > 3:
+                model = "seedream-4.5"  # Better for complex fusion
+            else:
+                model = "seedream-4.0"
+        except ImportError:
+            model = "seedream-4.0"
+    
+    client = BytePlusClient()
+    return client.generate_image_i2i(
+        prompt=enhanced_prompt,
+        reference_images=reference_images,
+        model=model,
+        mode=mode,
+        size=size,
+        **kwargs
+    )
 
 
 def generate_marketing_video(
@@ -434,12 +659,6 @@ def generate_marketing_video(
 ) -> Dict[str, Any]:
     """
     Generate a marketing video optimized for a specific platform.
-    
-    Args:
-        prompt: Base description of the video
-        platform: Target platform for aspect ratio optimization
-        duration: Video length in seconds
-        **kwargs: Additional arguments passed to generate_video()
     """
     # Platform-specific aspect ratios
     aspect_map = {
@@ -468,305 +687,6 @@ def generate_marketing_video(
         prompt=enhanced_prompt,
         aspect_ratio=aspect_ratio,
         duration=duration,
-        **kwargs
-    )
-
-
-    # Image-to-Image Generation Methods
-    
-    def generate_image_to_image(
-        self,
-        prompt: str,
-        reference_images: List[str],
-        model: str = "auto",
-        size: str = "2K",
-        mode: str = "single",
-        n: int = 1,
-        quality: str = "standard",
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Generate images using reference images (Image-to-Image).
-        
-        Supports multiple generation modes:
-        - single: Generate 1 image from 1 reference image
-        - fusion: Fuse 2-10 reference images into 1 output
-        - style_transfer: Apply style from reference to new content
-        - edit: Modify elements in the reference image
-        - subject_preservation: Keep subject consistent across variations
-        - image_set: Generate a set of related images (up to 14 images)
-        
-        Args:
-            prompt: Text description of desired output
-            reference_images: List of image URLs or file paths (1-10 images)
-            model: Model to use ("auto" to auto-select, or "seedream-4.0"/"seedream-4.5")
-            size: Output image size
-            mode: Generation mode - "single", "fusion", "style_transfer", "edit", 
-                  "subject_preservation", or "image_set"
-            n: Number of images to generate (for image_set mode, max 14)
-            quality: Quality level for auto-selection (draft, standard, high, premium)
-            **kwargs: Additional parameters passed to generate_image()
-            
-        Returns:
-            Dict containing generation results
-        """
-        # Auto-select model if needed
-        if model == "auto":
-            try:
-                from model_selector import ModelSelector, QualityLevel
-                selector = ModelSelector()
-                quality_enum = QualityLevel(quality)
-                
-                selection = selector.select_i2i_model(
-                    quality=quality_enum,
-                    num_reference_images=len(reference_images),
-                )
-                model = selection["model_key"]
-            except ImportError:
-                # Fallback without selector
-                model = "seedream-4.0"
-        
-        # Validate model support for image-to-image
-        if model not in ["seedream-4.0", "seedream-4.5"]:
-            return {
-                "success": False,
-                "error": f"Model '{model}' does not support image-to-image. Use 'seedream-4.0' or 'seedream-4.5'",
-                "supported_models": ["seedream-4.0", "seedream-4.5"],
-            }
-        
-        # Validate reference images count
-        if not reference_images:
-            return {
-                "success": False,
-                "error": "At least one reference image is required for image-to-image generation",
-            }
-        
-        max_images = 10
-        if len(reference_images) > max_images:
-            return {
-                "success": False,
-                "error": f"Too many reference images. Maximum is {max_images}, got {len(reference_images)}",
-            }
-        
-        # Determine sequential_image_generation setting based on mode
-        sequential_mode = "auto" if mode == "image_set" else "disabled"
-        
-        # Adjust n for image_set mode
-        if mode == "image_set":
-            total_items = len(reference_images) + n
-            if total_items > 15:
-                return {
-                    "success": False,
-                    "error": f"Total items (reference images + output images) cannot exceed 15. Got {total_items}",
-                }
-        
-        return self.generate_image(
-            prompt=prompt,
-            model=model,
-            size=size,
-            n=n,
-            image_urls=reference_images,
-            sequential_image_generation=sequential_mode,
-            **kwargs
-        )
-    
-    def edit_image(
-        self,
-        prompt: str,
-        image_path: str,
-        model: str = "seedream-4.0",
-        size: str = "2K",
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Edit an image - add, remove, or modify elements.
-        
-        Args:
-            prompt: Edit instruction (e.g., "Remove the background", "Change the color to red")
-            image_path: Path or URL to the image to edit
-            model: Model to use
-            size: Output size
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dict containing edited image
-        """
-        return self.generate_image_to_image(
-            prompt=prompt,
-            reference_images=[image_path],
-            model=model,
-            size=size,
-            mode="edit",
-            n=1,
-            **kwargs
-        )
-    
-    def style_transfer(
-        self,
-        content_prompt: str,
-        style_image: str,
-        model: str = "seedream-4.0",
-        size: str = "2K",
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Transfer style from reference image to new content.
-        
-        Args:
-            content_prompt: Description of content to generate
-            style_image: URL or path to style reference image
-            model: Model to use
-            size: Output size
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dict containing styled image
-        """
-        prompt = f"Refer to this image, keep the content unchanged, and apply its style to: {content_prompt}"
-        return self.generate_image_to_image(
-            prompt=prompt,
-            reference_images=[style_image],
-            model=model,
-            size=size,
-            mode="style_transfer",
-            n=1,
-            **kwargs
-        )
-    
-    def generate_variations(
-        self,
-        reference_image: str,
-        prompt: str = "Generate variations of this image with different angles and lighting",
-        model: str = "seedream-4.0",
-        n: int = 4,
-        size: str = "2K",
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Generate variations of a reference image while preserving the subject.
-        
-        Args:
-            reference_image: URL or path to reference image
-            prompt: Description of variations to create
-            model: Model to use
-            n: Number of variations (1-14)
-            size: Output size
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dict containing generated variations
-        """
-        if n > 14:
-            return {
-                "success": False,
-                "error": "Maximum 14 variations allowed",
-            }
-        
-        return self.generate_image_to_image(
-            prompt=prompt,
-            reference_images=[reference_image],
-            model=model,
-            size=size,
-            mode="image_set" if n > 1 else "single",
-            n=n,
-            **kwargs
-        )
-    
-    def fuse_images(
-        self,
-        images: List[str],
-        prompt: str,
-        model: str = "seedream-4.0",
-        size: str = "2K",
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Fuse multiple images into a single cohesive image.
-        
-        Args:
-            images: List of 2-10 image URLs/paths to fuse
-            prompt: Description of how to combine the images
-            model: Model to use
-            size: Output size
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dict containing fused image
-        """
-        if len(images) < 2:
-            return {
-                "success": False,
-                "error": "At least 2 images required for fusion",
-            }
-        
-        return self.generate_image_to_image(
-            prompt=prompt,
-            reference_images=images,
-            model=model,
-            size=size,
-            mode="fusion",
-            n=1,
-            **kwargs
-        )
-
-
-# Convenience functions for direct use
-def generate_marketing_image_i2i(
-    prompt: str,
-    reference_images: List[str],
-    mode: str = "single",
-    platform: str = "instagram",
-    style: str = "cinematic",
-    model: str = "auto",
-    quality: str = "standard",
-    **kwargs
-) -> Dict[str, Any]:
-    """
-    Generate marketing image using image-to-image (reference-based generation).
-    
-    Automatically selects seedream-4.0 or seedream-4.5 based on quality and requirements.
-    
-    Args:
-        prompt: Text description of desired output
-        reference_images: List of reference image URLs/paths (1-10 images)
-        mode: Generation mode (single, fusion, style_transfer, edit, subject_preservation, image_set)
-        platform: Target platform for size optimization
-        style: Visual style preset
-        model: Model to use ("auto" for auto-selection)
-        quality: Quality level for auto-selection (draft, standard, high, premium)
-        **kwargs: Additional arguments
-    """
-    # Platform-specific sizes
-    size_map = {
-        "instagram": "1024x1024",
-        "tiktok": "1080x1920",
-        "linkedin": "1200x627",
-        "twitter": "1200x675",
-        "youtube": "1280x720",
-    }
-    
-    # Style enhancements
-    style_prompts = {
-        "cinematic": "cinematic lighting, film grain, professional color grading",
-        "product": "product photography, clean background, soft shadows",
-        "lifestyle": "authentic lifestyle shot, natural lighting",
-        "minimal": "minimalist composition, clean lines, negative space",
-    }
-    
-    enhanced_prompt = prompt
-    if style in style_prompts:
-        enhanced_prompt += f", {style_prompts[style]}"
-    
-    size = kwargs.pop("size", size_map.get(platform, "1024x1024"))
-    
-    client = BytePlusClient()
-    return client.generate_image_to_image(
-        prompt=enhanced_prompt,
-        reference_images=reference_images,
-        model=model,
-        mode=mode,
-        size=size,
-        quality=quality,
         **kwargs
     )
 
