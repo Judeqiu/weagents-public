@@ -1,9 +1,10 @@
 ---
 name: remote-ops
-description: "Remote server operations via SSH. Use when: (1) creating agents on remote VMs, (2) managing remote infrastructure, (3) deploying to remote servers, (4) executing commands on remote machines, (5) syncing files to/from remote hosts. Supports SSH key-based auth, command execution, file transfer, and agent provisioning on remote systems."
+description: "Remote server operations via SSH. Use when: (1) creating agents on remote VMs, (2) managing remote infrastructure, (3) deploying to remote servers, (4) executing commands on remote machines, (5) syncing files to/from remote hosts. Supports SSH key-based auth, command execution, file transfer, and agent provisioning on remote systems. Works with weagents and oraora servers."
 metadata:
   {
     "weagents": { "emoji": "🌐", "requires": { "bins": ["ssh", "scp", "rsync"] } },
+    "oraora": { "emoji": "📚", "requires": { "bins": ["ssh", "scp", "rsync"] } }
   }
 ---
 
@@ -64,6 +65,19 @@ Host weagents-prod
     User weagent
     IdentityFile ~/.ssh/weagents_prod_key
     ProxyJump bastion-host
+
+# Pre-configured servers
+Host weagents
+    HostName 152.42.253.91
+    User root
+    IdentityFile ~/.ssh/id_ed25519_weagents
+    StrictHostKeyChecking accept-new
+
+Host oraora
+    HostName 15.204.234.93
+    User jude
+    IdentityFile ~/.ssh/id_ed25519_weagents
+    StrictHostKeyChecking accept-new
 ```
 
 ### Environment Variables
@@ -344,9 +358,20 @@ This skill works with:
 
 ---
 
-## 🔧 WeAgents Server Configuration
+## 🔧 Pre-Configured Server Configurations
 
-**ENCODED SERVER INFORMATION** - Use this section for all weagents deployments
+### Server Overview
+
+| Server | Alias | IP Address | User | Purpose |
+|--------|-------|------------|------|---------|
+| **WeAgents** | `weagents` | 152.42.253.91 | root | Production agent server |
+| **Educational Agent** | `oraora` | 15.204.234.93 | jude | Educational/development VM |
+
+---
+
+## 🌐 WeAgents Server
+
+**Production server for agent deployments**
 
 ### Connection Details
 
@@ -389,9 +414,7 @@ ssh weagents
 | **Channel Router** | `/opt/openclaw-channel-router/` |
 | **Systemd Services** | `/etc/systemd/system/` |
 
-### Skill Installation Template
-
-When installing a skill to weagents:
+### Skill Installation Template (WeAgents)
 
 ```bash
 # 1. Create skill directory in CORRECT location
@@ -407,7 +430,7 @@ ssh weagents "chmod +x /opt/agents/ono-assistant/workspace/skills/YOUR-SKILL-NAM
 ssh weagents "ls -la /opt/agents/ono-assistant/workspace/skills/YOUR-SKILL-NAME/"
 ```
 
-### Verification Commands
+### Verification Commands (WeAgents)
 
 ```bash
 # Test SSH connection
@@ -423,7 +446,71 @@ ssh weagents "ls -la /opt/agents/ono-assistant/workspace/"
 ssh weagents "head -5 /opt/agents/ono-assistant/workspace/skills/SKILL-NAME/SKILL.md"
 ```
 
-### Common Mistakes to Avoid
+---
+
+## 📚 Oraora Server (Educational Agent)
+
+**Educational/development VM for experiments and learning**
+
+### Connection Details
+
+| Property | Value |
+|----------|-------|
+| **Host Alias** | `oraora` |
+| **IP Address** | `15.204.234.93` |
+| **User** | `jude` |
+| **SSH Key** | `~/.ssh/id_ed25519_weagents` |
+| **OS** | Ubuntu 25.04 |
+
+### Quick Connect
+```bash
+ssh oraora
+```
+
+### Server Info
+```
+System: Ubuntu 25.04 (GNU/Linux 6.14.0-34-generic)
+IPv4: 15.204.234.93
+IPv6: 2604:2dc0:101:200::16da
+Disk: 10.7% of 95.85GB used
+Memory: ~3% used
+```
+
+### Common Operations (Oraora)
+
+```bash
+# Check system status
+ssh oraora "uptime && free -h && df -h"
+
+# Update packages
+ssh oraora "sudo apt update && sudo apt upgrade -y"
+
+# Check running processes
+ssh oraora "ps aux | head -20"
+
+# View system logs
+ssh oraora "journalctl -n 50 --no-pager"
+```
+
+### File Transfer Examples (Oraora)
+
+```bash
+# Copy file to oraora
+scp ./local-file.txt oraora:/home/jude/
+
+# Copy directory to oraora
+scp -r ./my-project/ oraora:/home/jude/
+
+# Copy from oraora to local
+scp -r oraora:/home/jude/logs/ ./local-logs/
+
+# Sync with rsync
+rsync -avz --progress ./project/ oraora:/home/jude/project/
+```
+
+---
+
+### Common Mistakes to Avoid (WeAgents)
 
 ❌ **WRONG** - Old/incorrect paths:
 ```bash
@@ -437,26 +524,6 @@ ssh weagents "head -5 /opt/agents/ono-assistant/workspace/skills/SKILL-NAME/SKIL
 /opt/agents/ono-assistant/workspace/skills/   # Correct location
 ```
 
-### Server Architecture
-
-```
-┌─────────────────────────────────────┐
-│  WeAgents Server (152.42.253.91)   │
-├─────────────────────────────────────┤
-│                                     │
-│  /opt/agents/ono-assistant/        │
-│  ├── workspace/        ← Agent     │
-│  │   ├── skills/       ← Skills    │
-│  │   ├── memory/       ← Memory    │
-│  │   └── *.md          ← Config    │
-│  └── ...                            │
-│                                     │
-│  /opt/openclaw-channel-router/     │
-│  └── Channel router service        │
-│                                     │
-└─────────────────────────────────────┘
-```
-
 ### SSH Config (Local Machine)
 
 Add to `~/.ssh/config`:
@@ -466,6 +533,12 @@ Host weagents
     User root
     IdentityFile ~/.ssh/id_ed25519_weagents
     StrictHostKeyChecking accept-new
+
+Host oraora
+    HostName 15.204.234.93
+    User jude
+    IdentityFile ~/.ssh/id_ed25519_weagents
+    StrictHostKeyChecking accept-new
 ```
 
-This configuration allows simple `ssh weagents` commands.
+This configuration allows simple `ssh weagents` or `ssh oraora` commands.
