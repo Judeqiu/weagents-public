@@ -301,61 +301,65 @@ class BytePlusClient:
     def generate_video(
         self,
         prompt: str,
-        model: str = "seedance-1.0-pro",
-        resolution: str = "1080p",
+        model: str = "seedance-1.5-pro",
         duration: int = 5,
-        aspect_ratio: str = "16:9",
-        audio: bool = True,
-        reference_images: Optional[List[str]] = None,
-        negative_prompt: Optional[str] = None,
-        style: Optional[str] = None,
+        resolution: Optional[str] = None,
+        ratio: Optional[str] = None,
+        generate_audio: bool = True,
+        watermark: bool = False,
+        camera_fixed: Optional[bool] = None,
         seed: Optional[int] = None,
-        poll_interval: int = 5,
-        max_polls: int = 60,
+        reference_images: Optional[List[str]] = None,
+        poll_interval: int = 1,
+        max_polls: int = 300,
     ) -> Dict[str, Any]:
         """
         Generate videos using Seedance models via SDK (async job pattern).
+        Aligned with BytePlus official API documentation.
         
         Args:
             prompt: Text description of the desired video
-            model: Model identifier (seedance-1.0-pro, seedance-1.0-lite)
+            model: Model identifier (seedance-1.5-pro, seedance-1.0-pro, etc.)
+            duration: Video duration in seconds (5-10 for most models)
             resolution: Output resolution (480p, 720p, 1080p, 2k)
-            duration: Video duration in seconds (4-15)
-            aspect_ratio: Frame aspect ratio (16:9, 9:16, 1:1, 4:3)
-            audio: Enable native audio generation
+            ratio: Aspect ratio (adaptive, 16:9, 9:16, 1:1, 4:3)
+            generate_audio: Whether to generate audio for the video
+            watermark: Whether to include watermark
+            camera_fixed: Whether to fix camera position
+            seed: Random seed for reproducibility
             reference_images: Optional list of image file paths or URLs for image-to-video
-            negative_prompt: Elements to exclude from generation
-            style: Visual style preset (cinematic, anime, realistic, 3d_render)
-            seed: Reproducibility seed
-            poll_interval: Seconds between status checks
-            max_polls: Maximum number of status checks
+            poll_interval: Seconds between status checks (default: 1 for faster updates)
+            max_polls: Maximum number of status checks (default: 300 for 5 min timeout)
             
         Returns:
             Dict containing generation results with 'video_url', 'status', etc.
         """
         model_id = self.VIDEO_MODELS.get(model, model)
         
-        # Validate parameters
-        if resolution not in self.VIDEO_RESOLUTIONS:
+        # Validate duration
+        if duration not in self.VIDEO_DURATIONS:
+            return {
+                "success": False,
+                "error": f"Invalid duration: {duration}. Must be one of {self.VIDEO_DURATIONS}"
+            }
+        
+        # Validate resolution if provided
+        if resolution and resolution not in self.VIDEO_RESOLUTIONS:
             return {
                 "success": False,
                 "error": f"Invalid resolution: {resolution}. Must be one of {self.VIDEO_RESOLUTIONS}"
             }
         
-        if aspect_ratio not in self.VIDEO_ASPECT_RATIOS:
+        # Validate ratio if provided
+        valid_ratios = ["adaptive", "16:9", "9:16", "1:1", "4:3"]
+        if ratio and ratio not in valid_ratios:
             return {
                 "success": False,
-                "error": f"Invalid aspect_ratio: {aspect_ratio}. Must be one of {self.VIDEO_ASPECT_RATIOS}"
-            }
-        
-        if duration not in self.VIDEO_DURATIONS:
-            return {
-                "success": False,
-                "error": f"Invalid duration: {duration}. Must be between 4-15 seconds"
+                "error": f"Invalid ratio: {ratio}. Must be one of {valid_ratios}"
             }
         
         try:
-            # Build content array for the request
+            # Build content array for the request (just the prompt text)
             content = [{"type": "text", "text": prompt}]
             
             # Add reference images if provided (convert local files to base64)
@@ -380,12 +384,35 @@ class BytePlusClient:
                             "error": f"Reference image not found: {img_path}"
                         }
             
+            # Build API parameters (aligned with official documentation)
+            api_params = {
+                "model": model_id,
+                "content": content,
+                "duration": duration,
+                "generate_audio": generate_audio,
+                "watermark": watermark,
+            }
+            
+            # Add optional parameters if provided
+            if resolution:
+                api_params["resolution"] = resolution
+            if ratio:
+                api_params["ratio"] = ratio
+            if camera_fixed is not None:
+                api_params["camera_fixed"] = camera_fixed
+            if seed is not None:
+                api_params["seed"] = seed
+            
             # Create task
             print(f"  Submitting video generation task...")
-            task = self._client.content_generation.tasks.create(
-                model=model_id,
-                content=content,
-            )
+            print(f"  Model: {model_id}")
+            print(f"  Duration: {duration}s")
+            if resolution:
+                print(f"  Resolution: {resolution}")
+            if ratio:
+                print(f"  Ratio: {ratio}")
+            
+            task = self._client.content_generation.tasks.create(**api_params)
             
             task_id = task.id
             print(f"  Task ID: {task_id}")
@@ -678,20 +705,26 @@ def generate_marketing_video(
     prompt: str,
     platform: str = "tiktok",
     duration: int = 5,
+    model: str = "seedance-1.5-pro",
+    resolution: Optional[str] = None,
+    generate_audio: bool = True,
+    reference_images: Optional[List[str]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
     Generate a marketing video optimized for a specific platform.
-    """
-    # Platform-specific aspect ratios
-    aspect_map = {
-        "tiktok": "9:16",
-        "instagram": "9:16",
-        "youtube": "16:9",
-        "linkedin": "16:9",
-    }
     
-    # Platform-specific enhancements
+    Args:
+        prompt: Text description of the desired video
+        platform: Target platform (tiktok, instagram, youtube, linkedin)
+        duration: Video duration in seconds (5-10)
+        model: Model identifier (seedance-1.5-pro, seedance-1.0-pro)
+        resolution: Output resolution (480p, 720p, 1080p, 2k)
+        generate_audio: Whether to generate audio for the video
+        reference_images: Optional list of image URLs for image-to-video
+        **kwargs: Additional parameters (watermark, seed, camera_fixed, etc.)
+    """
+    # Platform-specific enhancements (added to prompt)
     platform_prompts = {
         "tiktok": "fast-paced, engaging hook in first second, vertical format, mobile-optimized",
         "instagram": "polished aesthetic, smooth transitions, vertical format, Reels-optimized",
@@ -699,17 +732,30 @@ def generate_marketing_video(
         "linkedin": "corporate professional, clean graphics, horizontal format, business-appropriate",
     }
     
+    # Platform-specific aspect ratios
+    platform_ratios = {
+        "tiktok": "9:16",
+        "instagram": "9:16",
+        "youtube": "16:9",
+        "linkedin": "16:9",
+    }
+    
     enhanced_prompt = prompt
     if platform in platform_prompts:
         enhanced_prompt += f", {platform_prompts[platform]}"
     
-    aspect_ratio = kwargs.pop("aspect_ratio", aspect_map.get(platform, "16:9"))
+    # Get ratio from kwargs or use platform default
+    ratio = kwargs.pop("ratio", None) or platform_ratios.get(platform, "16:9")
     
     client = BytePlusClient()
     return client.generate_video(
         prompt=enhanced_prompt,
-        aspect_ratio=aspect_ratio,
         duration=duration,
+        model=model,
+        resolution=resolution,
+        ratio=ratio,
+        generate_audio=generate_audio,
+        reference_images=reference_images,
         **kwargs
     )
 

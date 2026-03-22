@@ -1,7 +1,15 @@
 # Marketing Creator Skill
 
-**Version:** 1.6.0  
+**Version:** 1.7.0  
 **Last Updated:** 2026-03-22
+
+### v1.7.0 (2026-03-22)
+- **Updated Video Generation API** - Aligned with BytePlus official API documentation
+  - Added proper API parameters: `--resolution`, `--audio`, `--no-audio`, `--watermark`
+  - Duration now passed as separate parameter (not embedded in prompt)
+  - Added support for `ratio`, `camera_fixed`, `seed` parameters
+  - Default model: `seedance-1.5-pro` (aligned with BytePlus samples)
+  - Platform-specific aspect ratios automatically applied
 
 ### v1.6.0 (2026-03-22)
 - **SDK-Only Architecture** - Removed all REST API fallbacks
@@ -307,10 +315,10 @@ netlify deploy --prod --message "Marketing story for Eco Bottle"
 
 | Feature | Image (Seedream) | Video (Seedance) |
 |---------|------------------|------------------|
-| **SDK Required** | No (REST API) | Yes (`byteplus-python-sdk-v2`) |
+| **SDK Required** | Yes (`byteplussdkarkruntime`) | Yes (`byteplussdkarkruntime`) |
 | **Endpoint** | `/api/v3/images/generations` | `content_generation.tasks` |
 | **Cost** | $0.03-0.04/image | $0.001-0.003/K tokens |
-| **Min Size** | 1024x1024 (921600 pixels) | 480p, 720p, 1080p, 2K |
+| **Parameters** | prompt, size, model, etc. | prompt, duration, resolution, generate_audio, etc. |
 
 ## Smart Model Selection
 
@@ -327,21 +335,21 @@ The skill automatically detects what type of generation you need and picks the r
 | **Multi-image Fusion** | Text + 3+ reference images | `seedream-4.5` | Better quality for complex fusion tasks |
 
 ### Quality Levels
-| Level | Use Case | Text-to-Image | Image-to-Image | Video Model/Resolution |
-|-------|----------|---------------|----------------|------------------------|
-| `draft` | Quick iterations, concepts | Seedream 3.0 | Seedream 4.0 | Seedance Lite @ 480p-720p |
-| `standard` | Most social content | Seedream 5.0 | Seedream 4.0 | Seedance Lite @ 720p-1080p |
-| `high` | Professional marketing | Seedream 5.0 | Seedream 4.5 | Seedance Pro @ 1080p |
-| `premium` | Print, high-end ads | Seedream 5.0 | Seedream 4.5 | Seedance Pro @ 1080p-2K |
+| Level | Use Case | Text-to-Image | Image-to-Image | Video Model |
+|-------|----------|---------------|----------------|-------------|
+| `draft` | Quick iterations, concepts | Seedream 3.0 | Seedream 4.0 | Seedance 1.0 Lite |
+| `standard` | Most social content | Seedream 5.0 | Seedream 4.0 | Seedance 1.0 Pro Fast |
+| `high` | Professional marketing | Seedream 5.0 | Seedream 4.5 | Seedance 1.0 Pro |
+| `premium` | Print, high-end ads | Seedream 5.0 | Seedream 4.5 | Seedance 1.5 Pro |
 
 ### Platform Optimizations
-| Platform | Image Size | Video Resolution | Notes |
-|----------|------------|------------------|-------|
-| Instagram | 1080x1080 | 1080p | Balanced quality |
-| TikTok | 1080x1920 | 720p | Mobile-optimized, cost-effective |
-| YouTube | 1280x720 | 1080p | Professional look |
-| LinkedIn | 1200x627 | 1080p | Business-appropriate |
-| Twitter | 1200x675 | 1080p | Feed-optimized |
+| Platform | Image Size | Video Format | Notes |
+|----------|------------|--------------|-------|
+| Instagram | 1080x1080 | Vertical/Horizontal | Balanced quality |
+| TikTok | 1080x1920 | Vertical | Mobile-optimized |
+| YouTube | 1280x720 | Horizontal | Professional look |
+| LinkedIn | 1200x627 | Horizontal | Business-appropriate |
+| Twitter | 1200x675 | Horizontal | Feed-optimized |
 
 ### Cost Optimization Flags
 ```bash
@@ -470,11 +478,12 @@ Use this for:
 | `seedance-1.0-pro-fast` | $0.0017/K tokens | 8/10 | 9/10 | Fast production, social content |
 | `seedance-1.5-pro` | $0.0030/K tokens | 10/10 | 6/10 | Premium content, cinematic |
 
-Video costs scale by resolution:
-- 480p: 0.5x base cost
-- 720p: 1.0x base cost
-- 1080p: 2.5x base cost
-- 2K: 3.5x base cost
+**Video Parameters:**
+- `--duration`: 5-10 seconds
+- `--resolution`: 480p, 720p, 1080p, 2k (optional, model decides if not specified)
+- `--audio` / `--no-audio`: Enable/disable audio generation (default: enabled)
+- `--watermark`: Include watermark (default: false)
+- Platform-specific aspect ratios applied automatically
 
 ## Channel Content Delivery (REQUIRED)
 
@@ -616,24 +625,34 @@ if result["success"]:
 
 ### Video Generation (Returns Content for Channel)
 ```python
-# Async pattern - submit job and poll
-response = requests.post(
-    "https://api.byteplus.com/seedance/v1/videos",
-    headers={"Authorization": f"Bearer {API_KEY}"},
-    json={
-        "model": "seedance-1-0-pro-250528",
-        "prompt": "Your prompt",
-        "resolution": "1080p",
-        "duration": 5,
-        "aspect_ratio": "16:9",
-        "audio": True
-    }
-)
-job_id = response.json()["id"]
+from byteplussdkarkruntime import Ark
 
-# Poll for completion and get video URL
-# ... polling logic ...
-video_url = status.json()["video_url"]
+# Initialize SDK client
+client = Ark(api_key="your-api-key")
+
+# Create video generation task (aligned with BytePlus official API)
+task = client.content_generation.tasks.create(
+    model="seedance-1-5-pro-251215",
+    content=[
+        {"type": "text", "text": "Product showcase video"}
+    ],
+    duration=5,
+    resolution="1080p",  # Optional: 480p, 720p, 1080p, 2k
+    generate_audio=True,
+    watermark=False,
+    ratio="16:9",  # Optional: adaptive, 16:9, 9:16, 1:1, 4:3
+)
+
+# Poll for completion
+task_id = task.id
+while True:
+    status = client.content_generation.tasks.get(task_id=task_id)
+    if status.status == "succeeded":
+        video_url = status.content.video_url
+        break
+    elif status.status == "failed":
+        raise Exception("Video generation failed")
+    time.sleep(10)
 
 # CRITICAL: Return content for channel delivery, never give URL to user directly
 output = {

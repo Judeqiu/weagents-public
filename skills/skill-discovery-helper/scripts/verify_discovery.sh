@@ -73,7 +73,7 @@ if [ -f ~/.openclaw/openclaw.json ]; then
         fi
     else
         echo "  ✗ extraDirs NOT configured"
-        echo "    Fix: openclaw config set skills.load.extraDirs '[\"/home/"$(whoami)"/.openclaw/workspace/skills\"]"'
+        echo "    Fix: openclaw config set skills.load.extraDirs '[\"/home/"$(whoami)"/.openclaw/workspace/skills\"]'"
         ((errors++))
     fi
 else
@@ -130,12 +130,13 @@ if command -v openclaw &> /dev/null; then
     if [ "$skill_count" -gt 0 ]; then
         echo "  ✓ openclaw skills list works ($skill_count skills found)"
         
-        # Check for workspace skills
+        # Check for workspace skills (both extra and workspace sources)
         extra_count=$(openclaw skills list 2>/dev/null | grep -c "openclaw-extra" || echo "0")
-        if [ "$extra_count" -gt 0 ]; then
-            echo "  ✓ Found $extra_count workspace (extra) skills"
+        workspace_count=$(openclaw skills list 2>/dev/null | grep -c "openclaw-workspace" || echo "0")
+        if [ "$extra_count" -gt 0 ] || [ "$workspace_count" -gt 0 ]; then
+            echo "  ✓ Found $extra_count extra + $workspace_count workspace skills"
         else
-            echo "  ⚠ No workspace (extra) skills found"
+            echo "  ⚠ No workspace skills found"
             echo "    (Skills may still be in directory but not discovered)"
             ((warnings++))
         fi
@@ -157,10 +158,10 @@ echo "  Errors:   $errors"
 echo "  Warnings: $warnings"
 echo ""
 
-if [ $errors -eq 0 ] && [ $warnings -eq 0 ]; then
+if [ "$errors" -eq 0 ] && [ "$warnings" -eq 0 ]; then
     echo "✓ All checks passed! Skill discovery is properly configured."
     exit 0
-elif [ $errors -eq 0 ]; then
+elif [ "$errors" -eq 0 ]; then
     echo "⚠ Some warnings. Skill discovery should work but could be improved."
     exit 0
 else
@@ -168,7 +169,8 @@ else
     echo ""
     echo "Quick fixes:"
     echo "  1. Configure extraDirs:"
-    echo "     openclaw config set skills.load.extraDirs '[\"/home/"$(whoami)"/.openclaw/workspace/skills\"]"'
+    USER=$(whoami)
+    echo "     openclaw config set skills.load.extraDirs '[\"/home/$USER/.openclaw/workspace/skills\"]'"
     echo "  2. Restart gateway:"
     echo "     systemctl --user restart openclaw-gateway"
     echo "  3. Create memory files:"

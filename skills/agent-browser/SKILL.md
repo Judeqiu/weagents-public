@@ -237,6 +237,7 @@ Automatically tries all browser methods in order:
 2. **mychrome** (Chrome CDP)
 3. **Browserless API** (cloud fallback)
 4. **curl** (simple HTTP)
+5. **Search fallback** (DuckDuckGo search results - when `--search-fallback` enabled)
 
 ```bash
 # Fetch content (auto-selects best method)
@@ -257,6 +258,16 @@ Automatically tries all browser methods in order:
 ~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
   --url https://example.com \
   --method browserless
+
+# Use search engine as last resort (when all browser methods fail)
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com \
+  --search-fallback
+
+# Force search method only (useful when direct access is blocked)
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://example.com \
+  --method search
 ```
 
 ### fetch_screenshot.sh - Smart Screenshot Capture
@@ -290,6 +301,35 @@ Same smart fallback logic for screenshots:
 | **Resilient** | If one method fails, automatically tries the next |
 | **Fast** | Uses fastest available method first |
 | **Reliable** | Always falls back to Browserless API (cloud) if needed |
+| **Search fallback** | When all else fails, can search for the content via DuckDuckGo |
+
+### Search Fallback Feature
+
+When you enable `--search-fallback`, the script will try DuckDuckGo search as a last resort if all browser methods fail:
+
+```bash
+# Auto-mode with search fallback
+~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
+  --url https://blocked-site.com \
+  --search-fallback \
+  --output /tmp/results.html
+```
+
+**What it does:**
+1. Searches DuckDuckGo for the URL/domain
+2. Returns formatted HTML with search results
+3. If search is blocked (common on VPS IPs), provides alternative access links:
+   - Google Search
+   - Google Cache
+   - Wayback Machine
+   - Bing Search
+
+**When to use:**
+- Accessing sites that block all browser automation
+- When domain is inaccessible but you need information about it
+- As a last resort when all other methods fail
+
+**Note:** Search engines may block automated requests from VPS/cloud IPs. The fallback always returns a helpful HTML page with alternative access methods.
 
 ### Example Output
 

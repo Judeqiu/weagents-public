@@ -5,7 +5,7 @@ Marketing Creator - CLI Tool for Marketing Asset Generation
 Generate images and videos for marketing campaigns using BytePlus ModelArk.
 """
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 import os
 import sys
@@ -1003,27 +1003,12 @@ def cmd_video(args):
     selector = ModelSelector()
     quality = QualityLevel(args.quality)
     
-    # Auto-select resolution if not specified
-    resolution = args.resolution
-    if not resolution or resolution == "auto":
-        selection = selector.select_video_model(
-            platform=args.platform,
-            quality=quality,
-            duration=args.duration,
-            urgency=args.urgency,
-        )
-        resolution = selection["resolution"]
-        print(f"   Resolution: {resolution} (auto-selected)")
-    else:
-        print(f"   Resolution: {resolution}")
-    
     # Auto-select model if not specified
     model = args.model
     if not model or model == "auto":
         selection = selector.select_video_model(
             platform=args.platform,
             quality=quality,
-            resolution=resolution,
             duration=args.duration,
             urgency=args.urgency,
         )
@@ -1036,22 +1021,21 @@ def cmd_video(args):
         print(f"   Model: {model}")
     
     print(f"   Duration: {args.duration}s")
+    if args.resolution:
+        print(f"   Resolution: {args.resolution}")
+    print(f"   Audio: {'enabled' if args.audio else 'disabled'}")
     
     # Cost estimation only
     if args.estimate:
         selection = selector.select_video_model(
             platform=args.platform,
             quality=quality,
-            resolution=resolution,
             duration=args.duration,
         )
         print("\n💰 Cost Estimate:")
-        print(f"   Recommended: {selection['name']} @ {resolution}")
+        print(f"   Recommended: {selection['name']}")
         print(f"   Unit cost: ${selection['estimated_cost_usd']:.3f}")
         print(f"   Duration: {args.duration}s")
-        print("\n   Alternative configurations:")
-        for alt in selection['alternatives'][:3]:
-            print(f"     • {alt['model']} @ {alt['resolution']}: ${alt['estimated_cost']:.3f}")
         return 0
     
     print("-" * 50)
@@ -1059,10 +1043,11 @@ def cmd_video(args):
     result = generate_marketing_video(
         prompt=args.prompt,
         platform=args.platform,
-        resolution=resolution,
         duration=args.duration,
         model=model,
-        audio=args.audio,
+        resolution=args.resolution,
+        generate_audio=args.audio,
+        watermark=args.watermark,
     )
     
     if result["success"]:
@@ -1118,7 +1103,6 @@ def cmd_campaign(args):
         result = generate_marketing_video(
             prompt=visual_prompt,
             platform=args.platform,
-            resolution=args.resolution,
             duration=args.duration,
         )
         asset_type = "video"
@@ -1908,13 +1892,11 @@ def cmd_estimate(args):
         selection = selector.select_video_model(
             platform=args.platform,
             quality=quality,
-            resolution=args.video_resolution,
             duration=args.video_duration,
         )
         
         print(f"\n🎬 Recommended Model: {selection['name']}")
-        print(f"   Resolution: {selection['resolution']}")
-        print(f"   Duration: {selection['duration']}s")
+        print(f"   Duration: {args.video_duration}s")
         print(f"   Quality score: {selection['quality_score']}/10")
         print(f"   Speed score: {selection['speed_score']}/10")
         
@@ -1923,16 +1905,10 @@ def cmd_estimate(args):
         print(f"   Quantity: {args.quantity}")
         print(f"   Total: ${selection['estimated_cost_usd'] * args.quantity:.2f}")
         
-        if selection.get('cost_breakdown'):
-            cb = selection['cost_breakdown']
-            print(f"\n   Base cost: ${cb['base_cost']:.3f}")
-            print(f"   Resolution multiplier: {cb['resolution_multiplier']}x")
-            print(f"   Duration multiplier: {cb['duration_multiplier']}x")
-        
         print(f"\n📊 Alternative Options:")
         for alt in selection['alternatives'][:4]:
             alt_total = alt['estimated_cost'] * args.quantity
-            print(f"   • {alt['model']} @ {alt['resolution']:<6} ${alt_total:.2f} (Q:{alt['quality']}/10, S:{alt['speed']}/10)")
+            print(f"   • {alt['model']:<20} ${alt_total:.2f} (Q:{alt['quality']}/10, S:{alt['speed']}/10)")
     
     return 0
 
@@ -2033,25 +2009,27 @@ Examples:
     vid_parser.add_argument("--platform", default="tiktok",
                           choices=["instagram", "tiktok", "youtube", "linkedin"],
                           help="Target platform (default: tiktok)")
-    vid_parser.add_argument("--resolution", default="auto",
-                          choices=["auto", "480p", "720p", "1080p", "2k"],
-                          help="Video resolution (default: auto-select based on platform/quality)")
     vid_parser.add_argument("--duration", type=int, default=5,
-                          help="Duration in seconds 4-15 (default: 5)")
+                          help="Duration in seconds 5-10 (default: 5)")
+    vid_parser.add_argument("--resolution",
+                          choices=["480p", "720p", "1080p", "2k"],
+                          help="Output resolution (default: model decides)")
     vid_parser.add_argument("--model", default="auto",
-                          help="Model to use (default: auto-select based on quality/platform)")
+                          help="Model to use - seedance-1.5-pro, seedance-1.0-pro (default: auto-select)")
     vid_parser.add_argument("--quality", default="standard",
                           choices=["draft", "standard", "high", "premium"],
-                          help="Quality level - affects model and resolution selection (default: standard)")
+                          help="Quality level - affects model selection (default: standard)")
     vid_parser.add_argument("--urgency", default="normal",
                           choices=["asap", "normal", "flexible"],
                           help="Speed priority - asap prefers faster models (default: normal)")
     vid_parser.add_argument("--estimate", action="store_true",
                           help="Show cost estimate only - do not generate")
     vid_parser.add_argument("--audio", action="store_true", default=True,
-                          help="Generate with audio (default: True)")
+                          help="Generate audio for the video (default: True)")
     vid_parser.add_argument("--no-audio", action="store_false", dest="audio",
-                          help="Generate without audio")
+                          help="Disable audio generation")
+    vid_parser.add_argument("--watermark", action="store_true", default=False,
+                          help="Include watermark (default: False)")
     vid_parser.add_argument("--output", "-o", help="Output JSON file")
     vid_parser.add_argument("--verbose", "-v", action="store_true",
                           help="Show detailed selection reasoning")
@@ -2067,10 +2045,8 @@ Examples:
                           help="Target platform (default: instagram)")
     camp_parser.add_argument("--video", action="store_true",
                           help="Generate video instead of image")
-    camp_parser.add_argument("--resolution", default="1080p",
-                          help="Video resolution (if --video)")
     camp_parser.add_argument("--duration", type=int, default=5,
-                          help="Video duration (if --video)")
+                          help="Video duration in seconds 4-10 (if --video)")
     camp_parser.add_argument("--output", "-o", help="Output JSON file")
     camp_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
@@ -2118,9 +2094,6 @@ Examples:
     est_parser.add_argument("--quality", default="standard",
                            choices=["draft", "standard", "high", "premium"],
                            help="Quality level (default: standard)")
-    est_parser.add_argument("--video-resolution", default="1080p",
-                           choices=["480p", "720p", "1080p", "2k"],
-                           help="Video resolution (for video estimates)")
     est_parser.add_argument("--video-duration", type=int, default=5,
                            help="Video duration in seconds (for video estimates)")
     

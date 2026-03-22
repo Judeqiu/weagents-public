@@ -122,19 +122,6 @@ VIDEO_MODELS = {
     ),
 }
 
-# Resolution cost multipliers for video
-VIDEO_RESOLUTION_MULTIPLIERS = {
-    "480p": 0.5,
-    "720p": 1.0,
-    "1080p": 2.5,
-    "2k": 3.5,
-}
-
-# Duration cost multipliers (base is 5s)
-def get_duration_multiplier(duration: int) -> float:
-    """Calculate cost multiplier based on duration."""
-    return max(0.8, duration / 5.0)
-
 
 class ModelSelector:
     """Intelligent model selector for cost-optimized generation."""
@@ -349,19 +336,14 @@ class ModelSelector:
         content_type: ContentType = ContentType.VIDEO_LIFESTYLE,
         quality: QualityLevel = QualityLevel.STANDARD,
         platform: str = "tiktok",
-        resolution: Optional[str] = None,
         duration: int = 5,
         urgency: str = "normal",
     ) -> Dict[str, Any]:
         """
         Select optimal video model and settings.
         
-        Returns dict with model selection and optimal resolution.
+        Returns dict with model selection.
         """
-        # Auto-select resolution based on platform if not specified
-        if not resolution:
-            resolution = self._suggest_resolution(platform, quality)
-        
         candidates = list(VIDEO_MODELS.values())
         
         # Filter by quality
@@ -378,8 +360,8 @@ class ModelSelector:
             candidates.sort(key=lambda m: (m.quality_score / m.cost_tier), reverse=True)
         
         if not candidates:
-            selected = VIDEO_MODELS["seedance-1.0-lite"]
-            model_key = "seedance-1.0-lite"
+            selected = VIDEO_MODELS["seedance-1.0-lite-t2v"]
+            model_key = "seedance-1.0-lite-t2v"
         else:
             selected = candidates[0]
             model_key = next(
@@ -387,14 +369,11 @@ class ModelSelector:
                 if v.model_id == selected.model_id
             )
         
-        # Calculate estimated cost
-        res_multiplier = VIDEO_RESOLUTION_MULTIPLIERS.get(resolution, 1.0)
-        dur_multiplier = get_duration_multiplier(duration)
-        estimated_cost = selected.estimated_cost_usd * res_multiplier * dur_multiplier
+        # Calculate estimated cost (simplified - no resolution multiplier)
+        estimated_cost = selected.estimated_cost_usd
         
         # Build reasoning
         reasoning_parts = [f"Selected {selected.name}"]
-        reasoning_parts.append(f"at {resolution}")
         
         if quality == QualityLevel.DRAFT:
             reasoning_parts.append("for quick iteration")
@@ -406,10 +385,10 @@ class ModelSelector:
         
         # Platform-specific advice
         platform_notes = {
-            "tiktok": "720p is optimal for mobile viewing",
-            "instagram": "1080p recommended for Reels",
-            "youtube": "1080p or 2K for professional look",
-            "linkedin": "1080p for professional presentations",
+            "tiktok": "Optimized for mobile vertical format",
+            "instagram": "Optimized for Reels vertical format",
+            "youtube": "Optimized for horizontal format",
+            "linkedin": "Optimized for professional presentations",
         }
         
         note = platform_notes.get(platform, "")
@@ -418,11 +397,9 @@ class ModelSelector:
         alternatives = []
         for k, v in VIDEO_MODELS.items():
             if v.model_id != selected.model_id:
-                alt_cost = v.estimated_cost_usd * res_multiplier * dur_multiplier
                 alternatives.append({
                     "model": k,
-                    "resolution": resolution,
-                    "estimated_cost": round(alt_cost, 3),
+                    "estimated_cost": v.estimated_cost_usd,
                     "quality": v.quality_score,
                     "speed": v.speed_score,
                 })
@@ -431,49 +408,14 @@ class ModelSelector:
             "model_key": model_key,
             "model_id": selected.model_id,
             "name": selected.name,
-            "resolution": resolution,
             "duration": duration,
             "reasoning": ", ".join(reasoning_parts),
             "estimated_cost_usd": round(estimated_cost, 3),
             "quality_score": selected.quality_score,
             "speed_score": selected.speed_score,
             "platform_note": note,
-            "cost_breakdown": {
-                "base_cost": selected.estimated_cost_usd,
-                "resolution_multiplier": res_multiplier,
-                "duration_multiplier": round(dur_multiplier, 2),
-            },
             "alternatives": alternatives,
         }
-    
-    def _suggest_resolution(self, platform: str, quality: QualityLevel) -> str:
-        """Suggest optimal resolution for platform and quality."""
-        suggestions = {
-            ("tiktok", QualityLevel.DRAFT): "480p",
-            ("tiktok", QualityLevel.STANDARD): "720p",
-            ("tiktok", QualityLevel.HIGH): "1080p",
-            ("instagram", QualityLevel.DRAFT): "720p",
-            ("instagram", QualityLevel.STANDARD): "1080p",
-            ("instagram", QualityLevel.HIGH): "1080p",
-            ("youtube", QualityLevel.STANDARD): "1080p",
-            ("youtube", QualityLevel.HIGH): "1080p",
-            ("youtube", QualityLevel.PREMIUM): "2k",
-            ("linkedin", QualityLevel.STANDARD): "1080p",
-            ("linkedin", QualityLevel.HIGH): "1080p",
-        }
-        
-        key = (platform, quality)
-        if key in suggestions:
-            return suggestions[key]
-        
-        # Default based on quality
-        quality_map = {
-            QualityLevel.DRAFT: "720p",
-            QualityLevel.STANDARD: "1080p",
-            QualityLevel.HIGH: "1080p",
-            QualityLevel.PREMIUM: "2k",
-        }
-        return quality_map.get(quality, "1080p")
     
     def compare_all_options(
         self,
@@ -494,21 +436,18 @@ class ModelSelector:
                 for k, v in IMAGE_MODELS.items()
             ]
         else:  # video
-            results = []
-            for res in ["480p", "720p", "1080p", "2k"]:
-                for k, v in VIDEO_MODELS.items():
-                    res_mult = VIDEO_RESOLUTION_MULTIPLIERS[res]
-                    dur_mult = get_duration_multiplier(duration)
-                    results.append({
-                        "model": k,
-                        "name": v.name,
-                        "resolution": res,
-                        "duration": duration,
-                        "cost_usd": round(v.estimated_cost_usd * res_mult * dur_mult, 3),
-                        "quality": v.quality_score,
-                        "speed": v.speed_score,
-                    })
-            return results
+            return [
+                {
+                    "model": k,
+                    "name": v.name,
+                    "duration": duration,
+                    "cost_usd": v.estimated_cost_usd,
+                    "quality": v.quality_score,
+                    "speed": v.speed_score,
+                    "best_for": v.best_for,
+                }
+                for k, v in VIDEO_MODELS.items()
+            ]
 
 
 # Convenience functions for quick selection
@@ -571,7 +510,6 @@ def select_for_ad_campaign(
 def get_cost_estimate(
     asset_type: str = "image",
     quantity: int = 1,
-    video_resolution: str = "1080p",
     video_duration: int = 5,
 ) -> Dict[str, Any]:
     """Get cost estimate for batch generation."""
@@ -596,7 +534,6 @@ def get_cost_estimate(
     else:
         # Video estimate
         selection = selector.select_video_model(
-            resolution=video_resolution,
             duration=video_duration,
         )
         unit_cost = selection["estimated_cost_usd"]
@@ -604,21 +541,16 @@ def get_cost_estimate(
         return {
             "asset_type": "video",
             "quantity": quantity,
-            "resolution": video_resolution,
             "duration": video_duration,
             "recommended_model": selection["model_key"],
             "unit_cost_usd": unit_cost,
             "total_cost_usd": round(unit_cost * quantity, 2),
             "alternatives": {
-                "480p": round(
-                    VIDEO_MODELS["seedance-1.0-lite"].estimated_cost_usd * 
-                    VIDEO_RESOLUTION_MULTIPLIERS["480p"] * 
-                    get_duration_multiplier(video_duration) * quantity, 2
+                "lite": round(
+                    VIDEO_MODELS["seedance-1.0-lite-t2v"].estimated_cost_usd * quantity, 2
                 ),
-                "2k": round(
-                    VIDEO_MODELS["seedance-1.0-pro"].estimated_cost_usd * 
-                    VIDEO_RESOLUTION_MULTIPLIERS["2k"] * 
-                    get_duration_multiplier(video_duration) * quantity, 2
+                "pro": round(
+                    VIDEO_MODELS["seedance-1.0-pro"].estimated_cost_usd * quantity, 2
                 ),
             },
         }
