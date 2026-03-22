@@ -1,12 +1,11 @@
 # Marketing Creator Skill Dependencies
 # Install with: pip install -r requirements.txt
 
-# Core dependencies
-requests>=2.31.0
-python-dotenv>=1.0.0
-Pillow>=10.0.0
-
-# BytePlus SDK for video generation (image generation works without this)
+# BytePlus SDK is REQUIRED for all operations
 # Note: Requires Python 3.8+
 byteplus-python-sdk-v2>=3.0.0
 pydantic>=2.0.0
+
+# Optional utilities
+python-dotenv>=1.0.0
+Pillow>=10.0.0

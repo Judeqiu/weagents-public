@@ -1,7 +1,13 @@
 # Marketing Creator Skill
 
-**Version:** 1.5.0  
+**Version:** 1.6.0  
 **Last Updated:** 2026-03-22
+
+### v1.6.0 (2026-03-22)
+- **SDK-Only Architecture** - Removed all REST API fallbacks
+  - Now requires `byteplus-python-sdk-v2` for all operations (no optional dependencies)
+  - Simplified codebase with unified SDK-only path
+  - Better error handling and consistency
 
 ### v1.5.0 (2026-03-22)
 - **Product Photo Integration** - Build stories around your own product images
