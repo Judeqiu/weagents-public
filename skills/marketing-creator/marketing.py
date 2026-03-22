@@ -2059,7 +2059,7 @@ Examples:
     vid_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
     # Campaign command
-    camp_parser = subparsers.add_parser("campaign", help="Generate full marketing campaign")
+    camp_parser = subparsers.add_parser("campaign", help="Generate full marketing campaign (fresh visuals, no reference images)")
     camp_parser.add_argument("--product", required=True, help="Product name/description")
     camp_parser.add_argument("--audience", required=True, help="Target audience")
     camp_parser.add_argument("--platform", default="instagram",

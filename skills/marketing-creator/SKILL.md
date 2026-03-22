@@ -191,6 +191,7 @@ Before using image/video generation, you must **activate the models** in the Byt
 ./marketing.py video "Cinematic drone shot of modern skyscraper at sunset"
 
 # Create a full campaign - outputs JSON for channel delivery
+# Note: Campaign generates FRESH visuals from scratch (does NOT use reference images)
 ./marketing.py campaign --product "Organic Coffee" --audience "health-conscious millennials"
 
 # Get batch cost estimate
