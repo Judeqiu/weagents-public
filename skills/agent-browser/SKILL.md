@@ -295,15 +295,30 @@ node scripts/browserless_ws_example.js
 
 #### Browserless Token Setup
 
+The agent-browser skill comes with a pre-configured Browserless API token. No setup required!
+
 ```bash
-# Set your Browserless API token (get from admin or https://www.browserless.io/)
-export BROWSERLESS_TOKEN="your-token-here"
+# Token is already embedded in the skill
+# Just use it directly:
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh status
 
 # Optional: Choose region (default: sfo)
-export BROWSERLESS_REGION="sfo"  # Options: sfo, lon, ams
+export BROWSERLESS_REGION="lon"  # Options: sfo, lon, ams
+```
 
-# Add to ~/.bashrc to make permanent
-echo 'export BROWSERLESS_TOKEN="your-token-here"' >> ~/.bashrc
+**Default Configuration:**
+- **Token**: Pre-configured (embedded in skill)
+- **Region**: US West (San Francisco)
+- **Base URL**: `https://production-sfo.browserless.io`
+
+**To customize (optional):**
+```bash
+# Run setup script to save to shell profile
+~/.openclaw/workspace/skills/agent-browser/scripts/setup_browserless.sh
+
+# Or manually set your own token
+export BROWSERLESS_TOKEN="your-own-token"
+export BROWSERLESS_REGION="lon"  # Change region
 ```
 
 #### Browserless Pricing

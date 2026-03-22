@@ -9,8 +9,20 @@
 set -e
 
 # Configuration
+# Check for token in environment or in .openclaw config
 BROWSERLESS_TOKEN="${BROWSERLESS_TOKEN:-}"
 BROWSERLESS_REGION="${BROWSERLESS_REGION:-sfo}"  # sfo, lon, ams
+
+# Try to load from .openclaw config if not set
+if [ -z "$BROWSERLESS_TOKEN" ] && [ -f "$HOME/.openclaw/.browserless_env" ]; then
+    source "$HOME/.openclaw/.browserless_env" 2>/dev/null || true
+fi
+
+# Default token for skill (can be overridden)
+if [ -z "$BROWSERLESS_TOKEN" ]; then
+    BROWSERLESS_TOKEN="2U3jFeWFupLKhCm4dbca95a8ad82b31439c5729ffafec1f0e"
+fi
+
 BROWSERLESS_BASE_URL="https://production-${BROWSERLESS_REGION}.browserless.io"
 
 # Colors
@@ -68,8 +80,14 @@ check_token() {
     if [ -z "$BROWSERLESS_TOKEN" ]; then
         echo -e "${RED}Error: BROWSERLESS_TOKEN not set${NC}"
         echo ""
-        echo "Get your token from https://www.browserless.io/ or ask your admin."
-        echo "Then set it: export BROWSERLESS_TOKEN='your-token-here'"
+        echo "The agent-browser skill comes with a pre-configured token."
+        echo "If you're seeing this, something went wrong with the embedded token."
+        echo ""
+        echo "To fix, run the setup script:"
+        echo "  ~/.openclaw/workspace/skills/agent-browser/scripts/setup_browserless.sh"
+        echo ""
+        echo "Or set your own token:"
+        echo "  export BROWSERLESS_TOKEN='your-token-here'"
         exit 1
     fi
 }
