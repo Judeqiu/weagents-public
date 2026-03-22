@@ -1,0 +1,13 @@
+{
+  "api_key": "93c36013-6bf1-4f66-8433-43ab94006298",
+  "base_url": "https://ark.ap-southeast.bytepluses.com/api/v3",
+  "seedance_base_url": "https://api.byteplus.com/seedance/v1",
+  "default_image_model": "seedream-3-0-250315",
+  "default_video_model": "seedance-1-0-pro-250528",
+  "telegram": {
+    "bot_token": null,
+    "default_chat_id": null,
+    "enabled": false
+  },
+  "configured_at": "2026-03-21T14:26:00Z"
+}
