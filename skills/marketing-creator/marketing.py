@@ -5,7 +5,7 @@ Marketing Creator - CLI Tool for Marketing Asset Generation
 Generate images and videos for marketing campaigns using BytePlus ModelArk.
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 import os
 import sys

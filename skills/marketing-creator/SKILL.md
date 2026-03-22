@@ -1,7 +1,12 @@
 # Marketing Creator Skill
 
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Last Updated:** 2026-03-22
+
+### v1.3.0 (2026-03-22)
+- **Removed telegram_poster.py** - No longer depends on Telegram-specific posting
+- **Channel Content Delivery** - Now outputs JSON for the calling system to deliver to current channel
+- **Configuration simplified** - Removed telegram section from config.json
 
 Generate marketing assets (images AND videos) using BytePlus ModelArk API with intelligent cost optimization. **Supports BOTH text-to-image AND image-to-image generation** for static images.
 
