@@ -5,7 +5,7 @@ Marketing Creator - CLI Tool for Marketing Asset Generation
 Generate images and videos for marketing campaigns using BytePlus ModelArk.
 """
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 import os
 import sys
@@ -1256,6 +1256,505 @@ def generate_campaign_concept(product: str, audience: str, platform: str) -> dic
     return concept
 
 
+
+def cmd_story(args):
+    """Generate a cohesive marketing story with multiple assets and create HTML landing page."""
+    print(f"\n📖 Creating Marketing Story")
+    print(f"   Product: {args.product}")
+    print(f"   Theme: {args.theme}")
+    print(f"   Pages/Sections: {args.pages}")
+    print(f"   Include Video: {args.include_video}")
+    print("=" * 60)
+    
+    # Generate story structure based on product and theme
+    story_structure = generate_story_structure(args.product, args.theme, args.pages)
+    
+    print(f"\n✨ Story Arc: {story_structure['title']}")
+    print(f"   Hook: {story_structure['hook']}")
+    
+    generated_assets = []
+    total_cost = 0.0
+    
+    # Generate assets for each section
+    for i, section in enumerate(story_structure['sections'], 1):
+        print(f"\n📄 Section {i}/{len(story_structure['sections'])}: {section['name']}")
+        print(f"   Purpose: {section['purpose']}")
+        print(f"   Generating visual...")
+        
+        # Generate image for this section
+        img_result = generate_marketing_image(
+            prompt=section['visual_prompt'],
+            platform=args.platform,
+            style=args.style,
+            quality=args.quality,
+        )
+        
+        if img_result["success"]:
+            section['image'] = img_result['images'][0] if img_result['images'] else None
+            section['image_cost'] = 0.035  # Approximate cost
+            total_cost += 0.035
+            print(f"   ✅ Image generated")
+        else:
+            print(f"   ❌ Image failed: {img_result.get('error', 'Unknown')}")
+            section['image'] = None
+        
+        # Generate video if requested and this is a key section (hero or CTA)
+        if args.include_video and section.get('include_video') and not args.estimate:
+            print(f"   🎬 Generating video...")
+            vid_result = generate_marketing_video(
+                prompt=section['video_prompt'] or section['visual_prompt'],
+                platform=args.platform,
+                duration=5,
+                quality=args.quality,
+            )
+            if vid_result["success"]:
+                section['video'] = vid_result.get('video_url')
+                section['video_cost'] = 0.002  # Approximate cost
+                total_cost += 0.002
+                print(f"   ✅ Video generated")
+            else:
+                print(f"   ❌ Video failed: {vid_result.get('error', 'Unknown')}")
+                section['video'] = None
+        
+        generated_assets.append(section)
+    
+    if args.estimate:
+        print(f"\n💰 Estimated Total Cost: ${total_cost:.2f}")
+        return 0
+    
+    # Generate HTML landing page
+    print(f"\n🌐 Generating HTML landing page...")
+    html_content = generate_story_html(story_structure, generated_assets, args.theme)
+    
+    # Save HTML to output directory
+    output_dir = Path(args.output) if args.output else Path.cwd() / "marketing_story"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    html_path = output_dir / "index.html"
+    with open(html_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    print(f"   ✅ HTML saved to: {html_path}")
+    
+    # Save story manifest for Netlify deployment
+    manifest = {
+        "type": "marketing_story",
+        "title": story_structure['title'],
+        "product": args.product,
+        "theme": args.theme,
+        "sections": len(generated_assets),
+        "total_cost": total_cost,
+        "output_dir": str(output_dir.absolute()),
+        "html_file": str(html_path.absolute()),
+        "assets": [
+            {
+                "section": s['name'],
+                "headline": s['headline'],
+                "body": s['body_text'],
+                "image_url": s.get('image', {}).get('url') if s.get('image') else None,
+                "video_url": s.get('video'),
+            }
+            for s in generated_assets
+        ]
+    }
+    
+    manifest_path = output_dir / "story_manifest.json"
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, indent=2)
+    print(f"   ✅ Manifest saved to: {manifest_path}")
+    
+    # Output for channel integration
+    output_result = {
+        "type": "marketing_story",
+        "success": True,
+        "title": story_structure['title'],
+        "output_dir": str(output_dir.absolute()),
+        "html_file": str(html_path.absolute()),
+        "manifest": str(manifest_path.absolute()),
+        "sections": len(generated_assets),
+        "total_cost": total_cost,
+        "ready_for_netlify": True,
+    }
+    
+    print("\n" + "=" * 60)
+    print(json.dumps(output_result, indent=2))
+    print("=" * 60)
+    print(f"\n✅ Marketing story complete!")
+    print(f"   📁 Output: {output_dir}")
+    print(f"   🌐 HTML: {html_path}")
+    print(f"   📋 Manifest: {manifest_path}")
+    print(f"\n🚀 Ready for Netlify deployment")
+    
+    return 0
+
+
+def generate_story_structure(product: str, theme: str, num_pages: int) -> dict:
+    """Generate a cohesive story structure based on product and theme."""
+    
+    # Theme-based story frameworks
+    themes = {
+        "sustainable-adventure": {
+            "title": f"The {product} Journey: From Nature to You",
+            "hook": "Discover how sustainable choices create extraordinary experiences",
+            "color_scheme": {"primary": "#2d5a3d", "secondary": "#f4f1ea", "accent": "#e07b39"},
+            "font": "Montserrat",
+        },
+        "luxury-lifestyle": {
+            "title": f"Experience {product}: Where Excellence Meets Elegance",
+            "hook": "Elevate every moment with uncompromising quality",
+            "color_scheme": {"primary": "#1a1a1a", "secondary": "#f5f5f5", "accent": "#c9a227"},
+            "font": "Playfair Display",
+        },
+        "tech-innovation": {
+            "title": f"{product}: The Future is Here",
+            "hook": "Revolutionary technology that transforms your daily life",
+            "color_scheme": {"primary": "#0a192f", "secondary": "#112240", "accent": "#64ffda"},
+            "font": "Inter",
+        },
+        "wellness-health": {
+            "title": f"{product}: Your Journey to Wellness",
+            "hook": "Nurture your body, mind, and spirit with natural solutions",
+            "color_scheme": {"primary": "#4a7c59", "secondary": "#f7f5f0", "accent": "#d4a574"},
+            "font": "Lora",
+        },
+        "family-home": {
+            "title": f"{product}: Made for Moments That Matter",
+            "hook": "Creating memories and comfort for the ones you love",
+            "color_scheme": {"primary": "#5a4a3a", "secondary": "#faf8f5", "accent": "#e85d4c"},
+            "font": "Nunito",
+        },
+    }
+    
+    # Default theme if not found
+    theme_data = themes.get(theme, themes["sustainable-adventure"])
+    
+    # Standard story sections based on copywriting frameworks (AIDA, PAS, etc.)
+    all_sections = [
+        {
+            "name": "Hero",
+            "purpose": "Grab attention with emotional hook",
+            "headline": theme_data["title"],
+            "subheadline": theme_data["hook"],
+            "body_text": f"Introducing {product} - the perfect companion for your {theme.replace('-', ' ')} journey. Experience the difference that quality and thoughtfulness make.",
+            "cta": "Discover More",
+            "visual_prompt": f"Stunning hero image for {product}, {theme} aesthetic, wide cinematic composition, professional marketing photography, emotional storytelling, high-end advertising style, dramatic lighting",
+            "video_prompt": f"Cinematic hero video for {product}, slow-motion reveal, {theme} atmosphere, professional color grading",
+            "include_video": True,
+        },
+        {
+            "name": "Problem",
+            "purpose": "Agitate the pain point",
+            "headline": "Does This Sound Familiar?",
+            "subheadline": "The struggle is real",
+            "body_text": f"We've all been there. Searching for a {product} that actually delivers on its promises. Dealing with inferior alternatives that leave you frustrated and disappointed.",
+            "cta": "See The Solution",
+            "visual_prompt": f"Relatable problem scenario for {product}, emotional candid photography, {theme} style, everyday situation, authentic moment, soft natural lighting",
+            "include_video": False,
+        },
+        {
+            "name": "Solution",
+            "purpose": "Present the product as answer",
+            "headline": f"Meet {product}: Your Perfect Solution",
+            "subheadline": "Designed with you in mind",
+            "body_text": f"After years of research and development, we've created {product} - a revolutionary approach that combines quality, sustainability, and exceptional performance.",
+            "cta": "Learn More",
+            "visual_prompt": f"Product showcase for {product}, clean studio photography, {theme} aesthetic, elegant composition, premium quality visible, soft shadows, professional lighting",
+            "include_video": True,
+        },
+        {
+            "name": "Benefits",
+            "purpose": "Show key advantages",
+            "headline": "Why Thousands Are Making the Switch",
+            "subheadline": "Real benefits, real results",
+            "body_text": "✓ Premium quality that lasts\n✓ Sustainable and eco-friendly\n✓ Designed for modern lifestyles\n✓ Loved by customers worldwide",
+            "cta": "Explore Benefits",
+            "visual_prompt": f"Lifestyle benefits scene with {product}, happy person using product, {theme} environment, aspirational yet achievable, warm natural lighting, authentic moment",
+            "include_video": False,
+        },
+        {
+            "name": "Social Proof",
+            "purpose": "Build trust with testimonials",
+            "headline": "Join Thousands of Happy Customers",
+            "subheadline": "Real stories from real people",
+            "body_text": '"I never knew what I was missing until I tried this. It completely transformed my daily routine!" - Sarah M.\n\n"Best investment I\'ve made this year. The quality is unmatched." - Michael R.',
+            "cta": "Read Reviews",
+            "visual_prompt": f"Diverse group of happy customers with {product}, genuine smiles, {theme} setting, authentic testimonial photography, natural lighting, community feeling",
+            "include_video": False,
+        },
+        {
+            "name": "CTA",
+            "purpose": "Drive action",
+            "headline": f"Ready to Transform Your Experience?",
+            "subheadline": "Limited time offer - don't miss out",
+            "body_text": f"Start your {theme.replace('-', ' ')} journey today with {product}. Order now and experience the difference that quality makes.",
+            "cta": "Get Yours Now",
+            "visual_prompt": f"Powerful call-to-action image with {product}, inspiring scene, {theme} aesthetic, uplifting composition, golden hour lighting, motivational atmosphere",
+            "video_prompt": f"Dynamic CTA video for {product}, energetic motion, {theme} vibes, urgency and excitement",
+            "include_video": True,
+        },
+    ]
+    
+    # Select sections based on requested number of pages
+    if num_pages <= 3:
+        selected_sections = [all_sections[0], all_sections[2], all_sections[5]]  # Hero, Solution, CTA
+    elif num_pages == 4:
+        selected_sections = [all_sections[0], all_sections[2], all_sections[3], all_sections[5]]  # Add Benefits
+    elif num_pages == 5:
+        selected_sections = [all_sections[0], all_sections[1], all_sections[2], all_sections[3], all_sections[5]]  # Add Problem
+    else:
+        selected_sections = all_sections  # All sections
+    
+    return {
+        "title": theme_data["title"],
+        "hook": theme_data["hook"],
+        "theme": theme,
+        "color_scheme": theme_data["color_scheme"],
+        "font": theme_data["font"],
+        "sections": selected_sections,
+    }
+
+
+def generate_story_html(story_structure: dict, assets: list, theme: str) -> str:
+    """Generate AI-designed HTML landing page for the marketing story."""
+    
+    colors = story_structure['color_scheme']
+    font = story_structure['font']
+    
+    # Generate CSS for responsive design
+    css = f"""
+        @import url('https://fonts.googleapis.com/css2?family={font.replace(" ", "+")}:wght@400;600;700&display=swap');
+        
+        :root {{
+            --primary: {colors['primary']};
+            --secondary: {colors['secondary']};
+            --accent: {colors['accent']};
+            --font-main: '{font}', sans-serif;
+        }}
+        
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        
+        body {{
+            font-family: var(--font-main);
+            background: var(--secondary);
+            color: #333;
+            line-height: 1.6;
+        }}
+        
+        .section {{
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            position: relative;
+        }}
+        
+        .section-content {{
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }}
+        
+        .section:nth-child(even) .section-content {{
+            direction: rtl;
+        }}
+        
+        .section:nth-child(even) .section-content > * {{
+            direction: ltr;
+        }}
+        
+        .text-content {{
+            padding: 2rem;
+        }}
+        
+        .visual-content {{
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }}
+        
+        .visual-content img {{
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.5s ease;
+        }}
+        
+        .visual-content:hover img {{
+            transform: scale(1.05);
+        }}
+        
+        h1 {{
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }}
+        
+        h2 {{
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }}
+        
+        .subheadline {{
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }}
+        
+        .body-text {{
+            font-size: 1.125rem;
+            color: #555;
+            margin-bottom: 2rem;
+            white-space: pre-line;
+        }}
+        
+        .cta-button {{
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }}
+        
+        .cta-button:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }}
+        
+        .hero {{
+            background: linear-gradient(135deg, var(--primary) 0%, {colors['primary']}dd 100%);
+            color: white;
+        }}
+        
+        .hero h1, .hero h2 {{
+            color: white;
+        }}
+        
+        .hero .subheadline {{
+            color: var(--accent);
+        }}
+        
+        .hero .body-text {{
+            color: rgba(255,255,255,0.9);
+        }}
+        
+        .video-container {{
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 20px;
+        }}
+        
+        .video-container video {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }}
+        
+        @media (max-width: 768px) {{
+            .section-content {{
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }}
+            
+            .section {{
+                padding: 2rem 1rem;
+            }}
+            
+            .section:nth-child(even) .section-content {{
+                direction: ltr;
+            }}
+        }}
+        
+        .scroll-indicator {{
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }}
+        
+        @keyframes bounce {{
+            0%, 20%, 50%, 80%, 100% {{ transform: translateX(-50%) translateY(0); }}
+            40% {{ transform: translateX(-50%) translateY(-10px); }}
+            60% {{ transform: translateX(-50%) translateY(-5px); }}
+        }}
+    """
+    
+    # Generate HTML sections
+    sections_html = []
+    for i, section in enumerate(assets):
+        is_hero = i == 0
+        section_class = "section hero" if is_hero else "section"
+        
+        # Determine visual content (image or video)
+        visual_html = ""
+        if section.get('video'):
+            visual_html = f'''
+                <div class="visual-content">
+                    <div class="video-container">
+                        <video autoplay loop muted playsinline>
+                            <source src="{section['video']}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            '''
+        elif section.get('image'):
+            img_url = section['image'].get('url', '')
+            visual_html = f'''
+                <div class="visual-content">
+                    <img src="{img_url}" alt="{section['headline']}">
+                </div>
+            '''
+        
+        section_html = f'''
+            <section class="{section_class}">
+                <div class="section-content">
+                    <div class="text-content">
+                        <h2>{section['headline']}</h2>
+                        <p class="subheadline">{section['subheadline']}</p>
+                        <p class="body-text">{section['body_text']}</p>
+                        <a href="#" class="cta-button">{section['cta']}</a>
+                    </div>
+                    {visual_html}
+                </div>
+                {('<div class="scroll-indicator">↓</div>' if is_hero else '')}
+            </section>
+        '''
+        sections_html.append(section_html)
+    
+    # Assemble full HTML
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{story_structure['title']}</title>
+    <style>{css}</style>
+</head>
+<body>
+    {''.join(sections_html)}
+</body>
+</html>"""
+    
+    return html
 def cmd_version(args):
     """Show version information."""
     print(f"\n🎨 Marketing Creator")
@@ -1269,6 +1768,7 @@ def cmd_version(args):
     print("   ✅ Video Generation (Seedance)")
     print("   ✅ Smart Model Selection")
     print("   ✅ Channel Content Delivery")
+    print("   ✅ Marketing Story Generator (with Netlify-ready HTML)")
     
     # Show available commands
     print("\n🛠️  Commands:")
@@ -1522,6 +2022,30 @@ Examples:
     camp_parser.add_argument("--output", "-o", help="Output JSON file")
     camp_parser.add_argument("--telegram-chat", help="Channel/chat ID (overrides default)")
     
+    # Story command
+    story_parser = subparsers.add_parser("story", help="Generate cohesive marketing story with landing page")
+    story_parser.add_argument("--product", required=True, help="Product name/description")
+    story_parser.add_argument("--theme", default="sustainable-adventure",
+                          choices=["sustainable-adventure", "luxury-lifestyle", "tech-innovation", 
+                                   "wellness-health", "family-home"],
+                          help="Marketing theme/story archetype (default: sustainable-adventure)")
+    story_parser.add_argument("--pages", type=int, default=4,
+                          help="Number of story sections/pages: 3-6 (default: 4)")
+    story_parser.add_argument("--include-video", action="store_true",
+                          help="Include video generation for key sections")
+    story_parser.add_argument("--platform", default="instagram",
+                          choices=["instagram", "tiktok", "linkedin", "twitter", "youtube"],
+                          help="Target platform for visuals (default: instagram)")
+    story_parser.add_argument("--style", default="cinematic",
+                          choices=["cinematic", "product", "lifestyle", "minimal"],
+                          help="Visual style (default: cinematic)")
+    story_parser.add_argument("--quality", default="standard",
+                          choices=["draft", "standard", "high", "premium"],
+                          help="Quality level (default: standard)")
+    story_parser.add_argument("--estimate", action="store_true",
+                          help="Show cost estimate only - do not generate")
+    story_parser.add_argument("--output", "-o", help="Output directory (default: ./marketing_story)")
+    
     # Status command
     status_parser = subparsers.add_parser("status", help="Check video generation status")
     status_parser.add_argument("job_id", help="Video generation job ID")
@@ -1558,7 +2082,7 @@ Examples:
         return 1
     
     # Check API key (skip for estimate command or when --estimate flag is used)
-    needs_api_key = args.command in ["image", "i2i", "video", "campaign", "status"]
+    needs_api_key = args.command in ["image", "i2i", "video", "campaign", "status", "story"]
     is_estimate_only = getattr(args, 'estimate', False)
     
     if needs_api_key and not is_estimate_only:
@@ -1590,6 +2114,7 @@ Examples:
         "i2i": cmd_i2i,
         "video": cmd_video,
         "campaign": cmd_campaign,
+        "story": cmd_story,
         "status": cmd_status,
         "estimate": cmd_estimate,
         "models": cmd_models,

@@ -1,7 +1,15 @@
 # Marketing Creator Skill
 
-**Version:** 1.3.0  
+**Version:** 1.4.0  
 **Last Updated:** 2026-03-22
+
+### v1.4.0 (2026-03-22)
+- **Marketing Story Generator** - New `story` command creates cohesive multi-page marketing narratives
+  - Generates 3-6 connected sections (Hero, Problem, Solution, Benefits, Social Proof, CTA)
+  - AI-designed HTML landing page with responsive layout
+  - 5 built-in themes: sustainable-adventure, luxury-lifestyle, tech-innovation, wellness-health, family-home
+  - Optional video generation for key sections
+  - Ready for Netlify deployment (outputs manifest.json + index.html)
 
 ### v1.3.0 (2026-03-22)
 - **Removed telegram_poster.py** - No longer depends on Telegram-specific posting
@@ -43,6 +51,7 @@ Generate marketing assets (images AND videos) using BytePlus ModelArk API with i
 - **Multi-platform**: Generate assets optimized for different platforms (Instagram, TikTok, LinkedIn, etc.)
 - **Smart Model Selection**: Automatically picks optimal model for quality/cost balance
 - **Cost Estimation**: Preview costs before generating
+- **Marketing Story Generator**: Create cohesive multi-page marketing narratives with AI-designed landing pages, ready for Netlify deployment
 - **Channel Content Delivery**: ALL generated images/videos are returned for posting to the current channel - no download links provided to users
 
 ### Image Generation Modes
@@ -174,6 +183,73 @@ Before using image/video generation, you must **activate the models** in the Byt
 ./marketing.py estimate image --quantity 20 --quality standard
 
 # All commands output JSON that the calling system uses to post to current channel
+```
+
+## Marketing Story Generator
+
+Create cohesive multi-page marketing narratives with AI-generated landing pages, ready for Netlify deployment.
+
+### Story Command
+
+```bash
+# Generate a 4-page marketing story (default)
+./marketing.py story --product "Eco-Friendly Water Bottle" --theme sustainable-adventure
+
+# Preview cost before generating
+./marketing.py story --product "Smart Watch" --theme tech-innovation --estimate
+
+# Include video for hero and CTA sections
+./marketing.py story --product "Luxury Skincare" --theme luxury-lifestyle --include-video
+
+# Generate 6-page comprehensive story
+./marketing.py story --product "Organic Tea" --theme wellness-health --pages 6
+
+# Custom output directory
+./marketing.py story --product "Baby Products" --theme family-home --output ./my-story
+```
+
+### Available Themes
+
+| Theme | Style | Best For |
+|-------|-------|----------|
+| `sustainable-adventure` | Earthy greens, natural | Eco-friendly products |
+| `luxury-lifestyle` | Black, gold, elegant | Premium/high-end products |
+| `tech-innovation` | Dark blue, cyan accents | Tech/gadget products |
+| `wellness-health` | Soft greens, warm neutrals | Health/wellness products |
+| `family-home` | Warm browns, cozy feel | Family/home products |
+
+### Story Structure (Sections)
+
+| Section | Purpose | Video? |
+|---------|---------|--------|
+| **Hero** | Grab attention with emotional hook | ✅ Optional |
+| **Problem** | Agitate the pain point | ❌ |
+| **Solution** | Present product as answer | ✅ Optional |
+| **Benefits** | Show key advantages | ❌ |
+| **Social Proof** | Build trust with testimonials | ❌ |
+| **CTA** | Drive action | ✅ Optional |
+
+### Output Files
+
+When you run the story command, it creates:
+
+```
+marketing_story/                    # or your --output directory
+├── index.html                      # Complete landing page
+├── story_manifest.json             # Metadata for Netlify deployment
+└── (assets embedded via URLs)      # Images/videos from BytePlus
+```
+
+### Netlify Integration
+
+The story output is ready for Netlify deployment:
+
+```bash
+# After generating story
+cd marketing_story
+
+# Deploy to Netlify (using netlify skill)
+netlify deploy --prod --message "Marketing story for Eco Bottle"
 ```
 
 ### Image vs Video Generation
