@@ -1776,6 +1776,7 @@ def cmd_version(args):
     print("   i2i      - Generate image from reference image(s)")
     print("   video    - Generate video from text")
     print("   campaign - Generate full marketing campaign")
+    print("   story    - Generate multi-page marketing story with HTML")
     print("   estimate - Get cost estimate")
     print("   models   - List available models")
     print("   version  - Show this version info")
