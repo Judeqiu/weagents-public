@@ -17,9 +17,17 @@ Headless browser automation CLI for AI agents. Fast Rust CLI with Node.js fallba
 - **Authentication flows**: Login automation with state persistence
 - **Visual regression**: Compare screenshots or snapshots between versions
 
+**Use mychrome instead when:**
+- You need **real Google Chrome** (not bundled Chromium)
+- You need **persistent login sessions** across restarts
+- You're working with sites that detect headless browsers
+- You need Chrome extensions or specific Chrome features
+- See [Alternative: mychrome](#alternative-mychrome-chrome-cdp) section below
+
 **Don't use when:**
 - Making simple HTTP requests (use curl/httpie instead)
 - API testing (use direct API clients)
+- You need persistent browser sessions (use **mychrome** instead)
 
 ## Core Pattern
 
@@ -153,6 +161,52 @@ agent-browser diff screenshot --baseline before.png
 agent-browser diff url https://v1.com https://v2.com
 ```
 
+## Alternative: mychrome (Chrome CDP)
+
+For use cases requiring **real Google Chrome** with persistent sessions, use the **mychrome** skill instead.
+
+### When to Use mychrome vs agent-browser
+
+| Use Case | Recommended Tool | Why |
+|----------|------------------|-----|
+| Quick scraping, no login needed | **agent-browser** | Fast, ephemeral, snapshot-based |
+| Sites requiring real Chrome | **mychrome** | Uses actual Google Chrome binary |
+| Persistent login sessions | **mychrome** | Chrome profile persists across sessions |
+| Chrome extensions needed | **mychrome** | Real Chrome supports extensions |
+| Complex Playwright workflows | **mychrome** | Full Playwright API access |
+| Quick snapshot interactions | **agent-browser** | @e1, @e2 refs are deterministic |
+
+### Using mychrome
+
+```bash
+# Check if Chrome CDP is running
+curl http://localhost:9222/json/version
+
+# Use mychrome skill for Chrome CDP automation
+~/.openclaw/workspace/skills/mychrome/scripts/chrome_manager.sh status
+
+# Take screenshot with mychrome
+python3 ~/.openclaw/workspace/skills/mychrome/scripts/chrome_cdp_helper.py \
+  --url https://example.com \
+  --screenshot /tmp/screenshot.png
+```
+
+### Key Differences
+
+| Feature | agent-browser | mychrome |
+|---------|---------------|----------|
+| **Browser** | Bundled Chromium | Real Google Chrome |
+| **Installation** | `npm install -g agent-browser` | Chrome must be pre-installed |
+| **Session** | Ephemeral (default) | Persistent profiles |
+| **Element IDs** | @e1, @e2 snapshot refs | CSS selectors, Playwright API |
+| **Speed** | Very fast (Rust) | Standard (Playwright) |
+| **CDP Required** | No | Yes (Chrome must run with --remote-debugging-port=9222) |
+| **Best For** | Quick tasks, testing | Automation with login state |
+
+**Tip:** Start with `agent-browser` for quick tasks. Switch to `mychrome` when you need persistent sessions or real Chrome behavior.
+
+---
+
 ## Common Mistakes
 
 | Mistake | Fix |
@@ -162,6 +216,7 @@ agent-browser diff url https://v1.com https://v2.com
 | Forgetting to close browser | Run `agent-browser close` or use `--session` for isolation |
 | Using npx for regular use | Install globally: `npm install -g agent-browser` |
 | Long timeouts without adjustment | Set `AGENT_BROWSER_DEFAULT_TIMEOUT` for slow pages |
+| Using agent-browser when you need persistent login | Switch to **mychrome** for session persistence |
 
 ## Security Features (Opt-in)
 
