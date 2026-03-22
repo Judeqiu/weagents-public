@@ -247,19 +247,34 @@ class BytePlusClient:
             elif mode == "fusion":
                 extended_prompt = f"Combine the reference images: {prompt}"
             
-            # Call API with image_urls parameter for I2I
-            # Note: image_urls is passed via extra_body as it's an extended parameter
-            response = self._client.images.generate(
-                model=model_id,
-                prompt=extended_prompt,
-                size=size,
-                sequential_image_generation=sequential_mode,
-                response_format="url",
-                stream=False,
-                extra_body={
-                    "image_urls": processed_images,
-                }
-            )
+            # Call API with image parameter for I2I (aligned with SDK sample)
+            # For single image, use 'image' parameter directly
+            # For multiple images (fusion), use 'image_urls' in extra_body
+            if len(processed_images) == 1:
+                response = self._client.images.generate(
+                    model=model_id,
+                    prompt=extended_prompt,
+                    image=processed_images[0],
+                    sequential_image_generation=sequential_mode,
+                    response_format="url",
+                    size=size,
+                    stream=False,
+                    watermark=False,
+                )
+            else:
+                # Multiple images - use extra_body for image_urls
+                response = self._client.images.generate(
+                    model=model_id,
+                    prompt=extended_prompt,
+                    size=size,
+                    sequential_image_generation=sequential_mode,
+                    response_format="url",
+                    stream=False,
+                    watermark=False,
+                    extra_body={
+                        "image_urls": processed_images,
+                    }
+                )
             
             results = []
             for item in response.data:
