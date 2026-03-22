@@ -137,10 +137,15 @@ class BytePlusClient:
         model_id = self.IMAGE_MODELS.get(model, model)
         
         try:
+            # Aligned with SDK sample code
             response = self._client.images.generate(
                 model=model_id,
                 prompt=prompt,
                 size=size,
+                sequential_image_generation="disabled",
+                response_format=response_format,
+                stream=False,
+                watermark=watermark,
             )
             
             results = []
@@ -243,13 +248,16 @@ class BytePlusClient:
                 extended_prompt = f"Combine the reference images: {prompt}"
             
             # Call API with image_urls parameter for I2I
+            # Note: image_urls is passed via extra_body as it's an extended parameter
             response = self._client.images.generate(
                 model=model_id,
                 prompt=extended_prompt,
                 size=size,
+                sequential_image_generation=sequential_mode,
+                response_format="url",
+                stream=False,
                 extra_body={
                     "image_urls": processed_images,
-                    "sequential_image_generation": sequential_mode,
                 }
             )
             
