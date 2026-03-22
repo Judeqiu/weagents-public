@@ -24,7 +24,6 @@ class Deployer:
         "marketing.py",
         "byteplus_client.py",
         "model_selector.py",
-        "telegram_poster.py",
         "api_reference.py",
         "test_setup.py",
         "requirements.txt",
