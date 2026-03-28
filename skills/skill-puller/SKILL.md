@@ -167,7 +167,7 @@ Git will be auto-installed. Just wait for the installation to complete.
 ## Configuration
 
 - **Default Host**: Runs on the current VM (no `--host` needed for OpenClaw)
-- **Repository**: `https://github.com/Judeqiu/weagents.git`
+- **Repository**: `https://github.com/Judeqiu/weagents-public.git`
 - **Skills Path**: `~/.openclaw/workspace/skills/`
 
 ## How It Works (Technical Details)

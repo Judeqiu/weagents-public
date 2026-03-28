@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Configuration
 DEFAULT_HOST = "kai"
-GITHUB_REPO = "https://github.com/Judeqiu/weagents.git"
+GITHUB_REPO = "https://github.com/Judeqiu/weagents-public.git"
 REMOTE_SKILLS_PATH = "~/.openclaw/workspace/skills"
 SKILLS_SUBDIR = "skills"
 
