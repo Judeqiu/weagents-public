@@ -1,62 +1,105 @@
 #!/usr/bin/env python3
 """
-Skill Puller - Download skills from GitHub to remote VMs
+Skill Puller - Download skills from GitHub
 
 Fast skill downloader using git sparse-checkout - only downloads the requested skill
 folder without cloning the entire repository.
 
+Can be run:
+  - Locally on the VM (no SSH needed)
+  - From a remote machine (uses SSH to connect to target host)
+
 Usage:
-    ./pull.py skill-name                    # Pull to default host
+    ./pull.py skill-name                    # Pull to current machine
     ./pull.py skill1 skill2                 # Pull multiple skills
-    ./pull.py skill-name --host kai         # Pull to specific host
+    ./pull.py skill-name --host kai         # Pull to remote host via SSH
     ./pull.py skill-name --force            # Force re-download
 """
 
 import argparse
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 # Configuration
-DEFAULT_HOST = "kai"
+DEFAULT_HOST = None  # None means local execution
 GITHUB_REPO = "https://github.com/Judeqiu/weagents-public.git"
 REMOTE_SKILLS_PATH = "~/.openclaw/workspace/skills"
 SKILLS_SUBDIR = "skills"
 
 
-def run_ssh_command(host: str, command: str, check: bool = True) -> tuple[int, str, str]:
-    """Run a command on remote host via SSH."""
-    ssh_cmd = ["ssh", host, command]
+def is_local_execution(host: str) -> bool:
+    """Check if we're running locally (host is this machine)."""
+    if host is None:
+        return True
+    # Check if hostname matches
     try:
         result = subprocess.run(
-            ssh_cmd,
+            ["hostname"],
             capture_output=True,
             text=True,
             check=False
         )
-        # Combine stdout and stderr for better error detection
-        combined_output = result.stdout + result.stderr
-        if check and result.returncode != 0:
-            print(f"❌ SSH command failed")
-            if result.stderr:
-                print(f"   Error: {result.stderr}")
-        return result.returncode, result.stdout, result.stderr
-    except Exception as e:
-        if check:
-            print(f"❌ SSH error: {e}")
-        return 1, "", str(e)
+        local_hostname = result.stdout.strip()
+        return host == local_hostname
+    except:
+        return False
+
+
+def run_command(host: str, command: str, check: bool = True) -> tuple[int, str, str]:
+    """Run a command locally or via SSH depending on host."""
+    if host is None or is_local_execution(host):
+        # Run locally
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if check and result.returncode != 0:
+                print(f"❌ Command failed")
+                if result.stderr:
+                    print(f"   Error: {result.stderr}")
+            return result.returncode, result.stdout, result.stderr
+        except Exception as e:
+            if check:
+                print(f"❌ Command error: {e}")
+            return 1, "", str(e)
+    else:
+        # Run via SSH
+        ssh_cmd = ["ssh", host, command]
+        try:
+            result = subprocess.run(
+                ssh_cmd,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if check and result.returncode != 0:
+                print(f"❌ SSH command failed")
+                if result.stderr:
+                    print(f"   Error: {result.stderr}")
+            return result.returncode, result.stdout, result.stderr
+        except Exception as e:
+            if check:
+                print(f"❌ SSH error: {e}")
+            return 1, "", str(e)
 
 
 def check_git_installed(host: str) -> bool:
-    """Check if git is installed on remote host."""
-    code, _, _ = run_ssh_command(host, "which git", check=False)
+    """Check if git is installed."""
+    code, _, _ = run_command(host, "which git", check=False)
     return code == 0
 
 
 def install_git(host: str) -> bool:
-    """Install git on remote host."""
-    print(f"📦 Installing git on {host}...")
-    code, _, stderr = run_ssh_command(
+    """Install git."""
+    location = "locally" if host is None or is_local_execution(host) else f"on {host}"
+    print(f"📦 Installing git {location}...")
+    code, _, stderr = run_command(
         host,
         "sudo apt-get update -qq && sudo apt-get install -y -qq git",
         check=False
@@ -69,9 +112,9 @@ def install_git(host: str) -> bool:
         return False
 
 
-def ensure_remote_dir(host: str) -> bool:
-    """Ensure the remote skills directory exists."""
-    code, _, _ = run_ssh_command(
+def ensure_skills_dir(host: str) -> bool:
+    """Ensure the skills directory exists."""
+    code, _, _ = run_command(
         host,
         f"mkdir -p {REMOTE_SKILLS_PATH}",
         check=False
@@ -80,8 +123,8 @@ def ensure_remote_dir(host: str) -> bool:
 
 
 def skill_exists(host: str, skill_name: str) -> bool:
-    """Check if skill already exists on remote host."""
-    code, _, _ = run_ssh_command(
+    """Check if skill already exists."""
+    code, _, _ = run_command(
         host,
         f"test -d {REMOTE_SKILLS_PATH}/{skill_name}",
         check=False
@@ -90,9 +133,9 @@ def skill_exists(host: str, skill_name: str) -> bool:
 
 
 def remove_skill(host: str, skill_name: str) -> bool:
-    """Remove existing skill from remote host."""
+    """Remove existing skill."""
     print(f"🗑️  Removing existing skill: {skill_name}")
-    code, _, _ = run_ssh_command(
+    code, _, _ = run_command(
         host,
         f"rm -rf {REMOTE_SKILLS_PATH}/{skill_name}",
         check=False
@@ -135,7 +178,7 @@ fi
 rm -rf {temp_dir}
 """
     
-    code, stdout, stderr = run_ssh_command(host, commands, check=False)
+    code, stdout, stderr = run_command(host, commands, check=False)
     
     # Combine outputs for error detection
     combined = stdout + stderr
@@ -169,7 +212,7 @@ def set_permissions(host: str, skill_name: str) -> bool:
     ]
     
     for cmd in commands:
-        run_ssh_command(host, cmd, check=False)
+        run_command(host, cmd, check=False)
     
     return True
 
@@ -179,7 +222,7 @@ def verify_skill(host: str, skill_name: str) -> bool:
     skill_dir = f"{REMOTE_SKILLS_PATH}/{skill_name}"
     
     # Check if directory exists
-    code, _, _ = run_ssh_command(
+    code, _, _ = run_command(
         host,
         f"test -d {skill_dir}",
         check=False
@@ -189,7 +232,7 @@ def verify_skill(host: str, skill_name: str) -> bool:
         return False
     
     # Check if SKILL.md exists
-    code, _, _ = run_ssh_command(
+    code, _, _ = run_command(
         host,
         f"test -f {skill_dir}/SKILL.md",
         check=False
@@ -199,7 +242,7 @@ def verify_skill(host: str, skill_name: str) -> bool:
         return False
     
     # Get skill info
-    code, stdout, _ = run_ssh_command(
+    code, stdout, _ = run_command(
         host,
         f"head -5 {skill_dir}/SKILL.md | grep -E '^name:|^description:'",
         check=False
@@ -219,7 +262,8 @@ def list_available_skills(host: str) -> list[str]:
     
     # Ensure git is installed
     if not check_git_installed(host):
-        print(f"⚠️  git not found on {host}, attempting to install...")
+        location = "locally" if host is None or is_local_execution(host) else f"on {host}"
+        print(f"⚠️  git not found {location}, attempting to install...")
         if not install_git(host):
             print(f"❌ Cannot proceed without git")
             return []
@@ -247,16 +291,17 @@ ls -1 {SKILLS_SUBDIR}/
 rm -rf {temp_dir}
 """
     
-    code, stdout, stderr = run_ssh_command(host, commands, check=False)
+    code, stdout, stderr = run_command(host, commands, check=False)
     
     if code != 0:
         print(f"❌ Failed to fetch skill list")
-        if "could not read Username" in stderr:
+        combined = stdout + stderr
+        if "could not read Username" in combined:
             print(f"   The repository appears to be PRIVATE.")
             print(f"   This tool requires a PUBLIC repository.")
             print(f"   Use skill-deployer instead for private repos.")
         else:
-            print(f"   Error: {stderr}")
+            print(f"   Error: {combined}")
         return []
     
     # Parse directory names
@@ -270,22 +315,24 @@ rm -rf {temp_dir}
 
 
 def pull_single_skill(host: str, skill_name: str, force: bool = False) -> bool:
-    """Pull a single skill to the remote host."""
+    """Pull a single skill to the target machine."""
+    location = "locally" if host is None or is_local_execution(host) else f"on {host}"
+    
     print(f"\n{'='*60}")
     print(f"📦 Processing: {skill_name}")
-    print(f"🎯 Target Host: {host}")
+    print(f"🎯 Target: {location}")
     print(f"{'='*60}")
     
     # Check if git is installed
     if not check_git_installed(host):
-        print(f"⚠️  git not found on {host}, attempting to install...")
+        print(f"⚠️  git not found {location}, attempting to install...")
         if not install_git(host):
             print(f"❌ Cannot proceed without git")
             return False
     
-    # Ensure remote directory exists
-    if not ensure_remote_dir(host):
-        print(f"❌ Failed to create remote directory")
+    # Ensure skills directory exists
+    if not ensure_skills_dir(host):
+        print(f"❌ Failed to create skills directory")
         return False
     
     # Check if skill already exists
@@ -310,7 +357,8 @@ def pull_single_skill(host: str, skill_name: str, force: bool = False) -> bool:
     if not verify_skill(host, skill_name):
         return False
     
-    print(f"✅ Successfully pulled {skill_name} to {host}")
+    location = "locally" if host is None or is_local_execution(host) else f"to {host}"
+    print(f"✅ Successfully pulled {skill_name} {location}")
     return True
 
 
@@ -340,7 +388,7 @@ Examples:
     parser.add_argument(
         "--host",
         default=DEFAULT_HOST,
-        help=f"Target host (default: {DEFAULT_HOST})"
+        help="Target host via SSH (default: run locally)"
     )
     
     parser.add_argument(
@@ -383,7 +431,8 @@ Examples:
     print(f"🚀 Skill Puller - Download from GitHub")
     print(f"{'='*60}")
     print(f"📁 Repository: {GITHUB_REPO}")
-    print(f"🎯 Host: {args.host}")
+    location = "local machine" if args.host is None or is_local_execution(args.host) else args.host
+    print(f"🎯 Target: {location}")
     
     success_count = 0
     fail_count = 0
@@ -400,7 +449,8 @@ Examples:
     print(f"{'='*60}")
     print(f"✅ Successful: {success_count}")
     print(f"❌ Failed: {fail_count}")
-    print(f"   Host: {args.host}")
+    location = "local machine" if args.host is None or is_local_execution(args.host) else args.host
+    print(f"   Target: {location}")
     print(f"   Path: {REMOTE_SKILLS_PATH}")
     
     if fail_count > 0:

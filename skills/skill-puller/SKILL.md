@@ -1,12 +1,12 @@
 ---
 name: skill-puller
-description: Download and install skills from the GitHub repository to this OpenClaw instance. Use when you need to get a skill from GitHub, install a new skill, or update an existing skill. Fast download using git sparse-checkout.
-version: 1.0.0
+description: Download and install skills from the GitHub repository to this OpenClaw instance. Use when you need to get a skill from GitHub, install a new skill, or update an existing skill. Fast download using git sparse-checkout. Runs locally on the VM - no SSH needed.
+version: 1.0.1
 ---
 
 # Skill Puller - For OpenClaw Agents
 
-This skill allows YOU (the OpenClaw agent) to download and install skills directly from the GitHub repository to this VM.
+This skill allows YOU (the OpenClaw agent) to download and install skills directly from the GitHub repository to this VM. **Runs locally** - no SSH configuration needed!
 
 ## When to Use This Skill
 
