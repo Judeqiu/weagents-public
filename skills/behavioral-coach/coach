@@ -1,0 +1,5 @@
+#!/bin/bash
+# Wrapper script for behavioral coach
+
+cd "$(dirname "$0")"
+python3 coach.py "$@"
