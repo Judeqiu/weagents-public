@@ -97,23 +97,58 @@ When asked to create a dashboard for the OpenClaw agent, **YOU (the AI agent)** 
 - Workspace: [Your workspace path]
 ```
 
-**Skills Section:**
-- List ALL skills from your workspace
-- Use appropriate emoji for each skill category:
-  - 🌐 Browser/web skills
-  - 🚀 Server/deployment skills
-  - 🧩 Skill management
-  - 🔍 Search skills
-  - 📥 Download/file skills
-  - 💬 Chat/messaging
-  - 📧 Email
-  - 🔒 Security
-  - ⚙️ Configuration
-  - 📊 Research/analysis
-  - 💰 Finance
-  - 🛒 Shopping/ecommerce
-  - 📄 Documents
-  - 💻 Development
+**Skills Section (Rich Display):**
+
+For each skill, create a rich card with:
+
+1. **Skill Header**:
+   - Emoji icon (based on skill category)
+   - Skill name
+   - Brief description (from SKILL.md)
+
+2. **How to Engage** (Usage Example):
+   - Show a sample user prompt that would trigger this skill
+   - Example: *"Search for..."*, *"Deploy..."*, *"Install..."*
+
+3. **Key Capabilities** (3-5 bullet points):
+   - What this skill can do
+   - Key features
+   - Common use cases
+
+**Example Skill Card Content:**
+
+```
+🚀 Caddy Manager
+Deploy static websites with automatic HTTPS
+
+How to Engage:
+• "Create an OpenClaw dashboard for me"
+• "Deploy my website to Kai"
+• "Set up a web server"
+
+Capabilities:
+• Install and configure Caddy web server
+• Deploy static sites with automatic HTTPS
+• Create agent dashboard homepage
+• Reverse proxy configuration
+• Virtual host management
+```
+
+**Emoji Categories:**
+- 🌐 Browser/web skills
+- 🚀 Server/deployment skills
+- 🧩 Skill management
+- 🔍 Search skills
+- 📥 Download/file skills
+- 💬 Chat/messaging
+- 📧 Email
+- 🔒 Security
+- ⚙️ Configuration
+- 📊 Research/analysis
+- 💰 Finance
+- 🛒 Shopping/ecommerce
+- 📄 Documents
+- 💻 Development
 
 **System Section:**
 ```
@@ -170,10 +205,84 @@ Check these paths for installed skills:
 - `~/.openclaw/agents/main/skills/`
 - `/opt/weagents/.openclaw/workspace/skills/`
 
-Read each skill's `SKILL.md` to get:
-- Name (directory name)
-- Description (from frontmatter or first paragraph)
-- Appropriate emoji based on skill type
+### How to Extract Skill Information
+
+For each skill, read its `SKILL.md` and extract:
+
+1. **Basic Info**:
+   - Name (directory name)
+   - Description (from frontmatter `description:` or first paragraph)
+   - Emoji (based on skill type/name)
+
+2. **Usage Examples** (from "How to Engage" sections):
+   - Look for user prompt examples
+   - Common phrases that trigger this skill
+   - Extract 2-3 sample engagements
+
+3. **Key Capabilities**:
+   - Main features (from bullet points or feature lists)
+   - What the skill can accomplish
+   - Common use cases mentioned in the skill
+
+**Example Extraction:**
+
+For `skill-puller/SKILL.md`:
+```yaml
+# Extracted Info:
+Name: skill-puller
+Description: Download and install skills from GitHub repository
+Emoji: 🧩
+
+How to Engage:
+• "Install the lextok-search skill"
+• "Update the producthunter skill"
+• "What skills are available?"
+
+Capabilities:
+• Download skills via git sparse-checkout
+• Install multiple skills at once
+• Update existing skills
+• List available skills from repository
+```
+
+### Dashboard Skills Display Format
+
+Generate HTML that shows:
+
+```html
+<div class="skill-card">
+  <div class="skill-header">
+    <span class="skill-emoji">🚀</span>
+    <h3>caddy-manager</h3>
+    <p class="skill-desc">Deploy static websites with automatic HTTPS</p>
+  </div>
+  
+  <div class="skill-engagement">
+    <h4>How to Engage:</h4>
+    <ul>
+      <li>"Create an OpenClaw dashboard"</li>
+      <li>"Deploy my website to Kai"</li>
+      <li>"Is my web server running?"</li>
+    </ul>
+  </div>
+  
+  <div class="skill-capabilities">
+    <h4>Capabilities:</h4>
+    <ul>
+      <li>Install and configure Caddy</li>
+      <li>Deploy static sites with HTTPS</li>
+      <li>Create agent dashboard</li>
+      <li>Reverse proxy setup</li>
+    </ul>
+  </div>
+</div>
+```
+
+**CSS Recommendations for Skills Section:**
+- Grid layout: 2-3 columns on desktop, 1 column on mobile
+- Card hover effect: slight lift + shadow increase
+- Collapsible sections: Engagement/Capabilities can expand/collapse
+- Color coding: Different border colors for skill categories
 
 ---
 
