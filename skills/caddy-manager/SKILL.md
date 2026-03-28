@@ -7,6 +7,8 @@ description: Manage Caddy web server on Kai VM or localhost for deploying static
 
 Deploy static websites with automatic HTTPS using Caddy web server. Works on both Kai VM (remote) and localhost.
 
+---
+
 ## Quick Start
 
 ```bash
@@ -22,13 +24,35 @@ caddy run --config Caddyfile
 
 ---
 
+## How to Engage This Skill
+
+> **User says:** *"I need to set up a web server"*
+> 
+> **Agent action:** Check if Caddy is installed, install if needed, configure basic setup
+
+> **User says:** *"Create an OpenClaw dashboard for my agent"*
+> 
+> **Agent action:** Create a beautiful HTML dashboard showing agent info, skills, and system status
+
+> **User says:** *"Deploy my website to Kai"*
+> 
+> **Agent action:** Set up Caddy config, create site directory, deploy files, reload Caddy
+
+> **User says:** *"Is my web server running?"*
+> 
+> **Agent action:** Check Caddy service status, view logs, verify ports
+
+---
+
 ## OpenClaw Agent Dashboard (AI-Assisted)
 
-When asked to create a dashboard for the OpenClaw agent, **YOU (the AI agent)** will create it using your knowledge and tools. Do NOT rely on static scripts.
+When asked to create a dashboard for the OpenClaw agent, **YOU (the AI agent)** will create it using your knowledge and tools.
 
-### How to Create the Dashboard
+### How to Engage: Create Dashboard
 
-When the user asks "Create an OpenClaw dashboard" or similar:
+**User:** *"Create an OpenClaw dashboard for me"*
+
+**You (Agent) should:**
 
 1. **Gather Information** - Use your knowledge of:
    - Your own agent identity (name, model, version)
@@ -36,24 +60,31 @@ When the user asks "Create an OpenClaw dashboard" or similar:
    - System information (hostname, platform, uptime)
    - Connected channels (Telegram, WhatsApp, etc.)
 
-2. **Create the HTML File** - Write a complete, modern HTML dashboard to the web root:
-   - Production: `/var/www/welcome/index.html`
-   - Local: `./sites/dashboard/index.html`
+2. **Create the HTML File** - Write a complete, modern HTML dashboard:
+   ```bash
+   # Detect environment first
+   if [[ -f /etc/caddy/Caddyfile ]]; then
+       WEB_ROOT="/var/www/welcome"
+   else
+       WEB_ROOT="./sites/dashboard"
+   fi
+   mkdir -p "$WEB_ROOT"
+   
+   # Create the HTML file using your knowledge
+   # Include: Agent info, Skills gallery, System info, Channels status
+   ```
 
-3. **Include These Sections**:
-   - 🤖 **Agent Identity**: Your name, model, version, status
-   - 📦 **Skills Gallery**: All installed skills with icons and descriptions
-   - 🖥️ **System Info**: Hostname, platform, uptime
-   - 🔌 **Channels**: Telegram/WhatsApp status
-   - 📊 **Quick Stats**: Skills count, uptime, etc.
-
-4. **Design Requirements**:
-   - Modern gradient background (purple/blue theme)
-   - Responsive design (mobile-friendly)
-   - Card-based layout with shadows
-   - Emoji icons for visual appeal
-   - Dark mode support (optional but nice)
-   - Hover effects on skill cards
+3. **Deploy and Verify**:
+   ```bash
+   # Set permissions
+   sudo chown -R caddy:caddy "$WEB_ROOT"
+   
+   # Reload Caddy
+   sudo systemctl reload caddy
+   
+   # Verify it's working
+   curl http://localhost
+   ```
 
 ### Dashboard Content Guidelines
 
@@ -83,7 +114,6 @@ When the user asks "Create an OpenClaw dashboard" or similar:
   - 🛒 Shopping/ecommerce
   - 📄 Documents
   - 💻 Development
-- Include skill description from SKILL.md
 
 **System Section:**
 ```
@@ -133,18 +163,6 @@ When the user asks "Create an OpenClaw dashboard" or similar:
 </html>
 ```
 
-### Deployment After Creation
-
-```bash
-# For production (Kai VM)
-sudo chown -R caddy:caddy /var/www/welcome
-sudo chmod -R 755 /var/www/welcome
-sudo systemctl reload caddy
-
-# For local development
-caddy reload --config Caddyfile
-```
-
 ### Skills Directory Locations
 
 Check these paths for installed skills:
@@ -161,12 +179,30 @@ Read each skill's `SKILL.md` to get:
 
 ## Installation
 
-### Auto-Detect & Install
+### How to Engage: Install Caddy
 
-```bash
-# Check current status
-caddy version 2>/dev/null || echo "Caddy not installed"
-```
+**User:** *"Install Caddy on my server"*
+
+**You (Agent) should:**
+
+1. **Detect the platform**:
+   ```bash
+   # Check OS
+   uname -s  # Linux/Darwin
+   cat /etc/os-release  # For Linux distro
+   ```
+
+2. **Install using appropriate method**:
+   - Ubuntu/Debian: Use official Caddy repo
+   - macOS: Use Homebrew
+   - Arch: Use pacman
+   - Other: Manual install
+
+3. **Verify installation**:
+   ```bash
+   caddy version
+   which caddy
+   ```
 
 ### macOS (Homebrew)
 
@@ -208,14 +244,11 @@ sudo chmod +x /usr/local/bin/caddy
 
 ## Environment Detection
 
-### Detect Running Environment
+### How to Engage: Detect Environment
 
-| Check | Kai VM | Localhost |
-|-------|--------|-----------|
-| Hostname | `vps-*` or `kai` | Your machine |
-| Config Path | `/etc/caddy/Caddyfile` | `./Caddyfile` |
-| Sites Dir | `/var/www/sites/` | `./sites/` |
-| Service | systemd | brew / manual |
+**User:** *"Set up Caddy for my environment"*
+
+**You (Agent) should:**
 
 ```bash
 # Detect environment
@@ -234,16 +267,29 @@ else
 fi
 ```
 
+| Check | Kai VM | Localhost |
+|-------|--------|-----------|
+| Hostname | `vps-*` or `kai` | Your machine |
+| Config Path | `/etc/caddy/Caddyfile` | `./Caddyfile` |
+| Sites Dir | `/var/www/sites/` | `./sites/` |
+| Service | systemd | brew / manual |
+
 ---
 
 ## Local Development Setup
 
-### Initialize Local Caddy Project
+### How to Engage: Setup Local Dev
+
+**User:** *"I want to develop a website locally"*
+
+**You (Agent) should:**
 
 ```bash
+# 1. Create project structure
 mkdir -p my-website/sites/myapp
 cd my-website
 
+# 2. Create Caddyfile
 cat > Caddyfile << 'EOF'
 {
     auto_https off
@@ -257,24 +303,20 @@ cat > Caddyfile << 'EOF'
 }
 EOF
 
+# 3. Create sample HTML
 mkdir -p sites/myapp
 cat > sites/myapp/index.html << 'EOF'
 <!DOCTYPE html>
 <html>
-<head>
-    <title>My Local Site</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-    </style>
-</head>
-<body>
-    <h1>Hello from Caddy!</h1>
-    <p>Local development server running on :8080</p>
-</body>
+<head><title>My Site</title></head>
+<body><h1>Hello!</h1></body>
 </html>
 EOF
 
+# 4. Start Caddy
 caddy run --config Caddyfile
+
+# 5. Tell user to open http://localhost:8080
 ```
 
 ---
@@ -288,6 +330,26 @@ caddy run --config Caddyfile
 - **Sites Directory**: `/var/www/sites/`
 - **Default Welcome**: `/var/www/welcome/`
 - **Service**: `caddy` (systemd)
+
+### How to Engage: Check Production Status
+
+**User:** *"Is Caddy running on my server?"*
+
+**You (Agent) should:**
+
+```bash
+# Check service status
+sudo systemctl status caddy --no-pager
+
+# Check logs
+sudo journalctl -u caddy --no-pager -n 50
+
+# Validate config
+sudo caddy validate --config /etc/caddy/Caddyfile
+
+# Check ports
+ss -tlnp | grep -E ':80|:443'
+```
 
 ### Production Commands
 
@@ -309,14 +371,22 @@ sudo caddy validate --config /etc/caddy/Caddyfile
 
 ## Deployment Methods
 
-### Method 1: Custom Domain (Auto HTTPS)
+### How to Engage: Deploy a Website
+
+**User:** *"Deploy my website example.com"*
+
+**You (Agent) should:**
+
+#### Method 1: Custom Domain (Auto HTTPS)
 
 ```bash
-SITE_DOMAIN="mydomain.com"
+SITE_DOMAIN="example.com"
 SITES_DIR="/var/www/sites"
 
+# 1. Create site directory
 sudo mkdir -p "$SITES_DIR/$SITE_DOMAIN"
 
+# 2. Create Caddyfile
 sudo tee "$SITES_DIR/$SITE_DOMAIN/Caddyfile" << EOF
 $SITE_DOMAIN {
     root * $SITES_DIR/$SITE_DOMAIN
@@ -325,18 +395,30 @@ $SITE_DOMAIN {
 }
 EOF
 
+# 3. Copy website files
+# (User provides files or you create them)
+
+# 4. Set permissions
 sudo chown -R caddy:caddy "$SITES_DIR/$SITE_DOMAIN"
+
+# 5. Reload Caddy
 sudo systemctl reload caddy
+
+# 6. Tell user the site is live at https://example.com
 ```
 
-### Method 2: Path-Based (No Domain)
+#### Method 2: Path-Based (No Domain)
+
+**User:** *"Deploy my app at /myapp path"*
 
 ```bash
 APP_NAME="myapp"
 SITES_DIR="/var/www/sites"
 
+# Create directory
 sudo mkdir -p "$SITES_DIR/$APP_NAME"
 
+# Add to main Caddyfile
 sudo tee -a /etc/caddy/Caddyfile << EOF
 
 handle_path /$APP_NAME/* {
@@ -346,11 +428,16 @@ handle_path /$APP_NAME/* {
 }
 EOF
 
+# Reload
 sudo caddy fmt --overwrite /etc/caddy/Caddyfile
 sudo systemctl reload caddy
+
+# Site is now at http://server/myapp/
 ```
 
-### Method 3: Reverse Proxy
+#### Method 3: Reverse Proxy
+
+**User:** *"Proxy my API running on port 3000"*
 
 ```bash
 DOMAIN="api.example.com"
@@ -370,17 +457,11 @@ sudo systemctl reload caddy
 
 ## Common Patterns
 
-### Basic Static Site
+### How to Engage: Configure Common Patterns
 
-```caddyfile
-domain.com {
-    root * /var/www/sites/domain.com
-    file_server
-    encode gzip
-}
-```
+**User:** *"Set up a single page app"*
 
-### SPA (Single Page Application)
+**You (Agent) should:**
 
 ```caddyfile
 domain.com {
@@ -391,18 +472,7 @@ domain.com {
 }
 ```
 
-### PHP Site
-
-```caddyfile
-domain.com {
-    root * /var/www/sites/domain.com
-    encode gzip
-    php_fastcgi unix//run/php/php8.1-fpm.sock
-    file_server
-}
-```
-
-### Redirect www to non-www
+**User:** *"Redirect www to non-www"*
 
 ```caddyfile
 www.domain.com {
@@ -415,74 +485,114 @@ domain.com {
 }
 ```
 
+**User:** *"Add PHP support"*
+
+```caddyfile
+domain.com {
+    root * /var/www/sites/domain.com
+    encode gzip
+    php_fastcgi unix//run/php/php8.1-fpm.sock
+    file_server
+}
+```
+
 ---
 
 ## Site Management
 
-### List Sites
+### How to Engage: Manage Sites
+
+**User:** *"List all my websites"*
 
 ```bash
 ls -la /var/www/sites/  # Production
 ls -la ./sites/          # Local
 ```
 
-### Delete Site
+**User:** *"Delete my website example.com"*
 
 ```bash
-SITE="mydomain.com"
+SITE="example.com"
 SITES_DIR="/var/www/sites"
 
-sudo rm -rf "$SITES_DIR/$SITE"
-sudo systemctl reload caddy
+# Confirm with user first!
+read -p "Are you sure you want to delete $SITE? (y/n) " confirm
+
+if [[ $confirm == "y" ]]; then
+    sudo rm -rf "$SITES_DIR/$SITE"
+    sudo systemctl reload caddy
+    echo "Site $SITE deleted"
+fi
 ```
 
 ---
 
 ## Troubleshooting
 
-### Check if Caddy is Running
+### How to Engage: Troubleshoot Issues
+
+**User:** *"My website is not loading"*
+
+**You (Agent) should:**
 
 ```bash
-curl -s http://localhost:2019/config/ | head
-systemctl is-active caddy  # Linux
-brew services list | grep caddy  # macOS
+# 1. Check if Caddy is running
+sudo systemctl status caddy --no-pager
+
+# 2. Check for config errors
+sudo caddy validate --config /etc/caddy/Caddyfile
+
+# 3. Check logs for errors
+sudo journalctl -u caddy --no-pager -n 50 | grep -i error
+
+# 4. Check if port 80/443 is listening
+ss -tlnp | grep -E ':80|:443'
+
+# 5. Test locally
+curl -I http://localhost
+
+# 6. Check file permissions
+ls -la /var/www/sites/
 ```
 
-### View Logs
+**User:** *"I get a 404 error"**
 
 ```bash
-# systemd
-sudo journalctl -u caddy -n 100 --no-pager
+# Check if site directory exists
+ls -la /var/www/sites/example.com/
 
-# macOS
-log show --predicate 'process == "caddy"' --last 1h
+# Check if index.html exists
+ls -la /var/www/sites/example.com/index.html
 
-# Foreground
-caddy run --config Caddyfile 2>&1
+# Check Caddyfile config
+cat /etc/caddy/Caddyfile
 ```
 
-### Validate Configuration
+**User:** *"HTTPS is not working"**
 
 ```bash
-sudo caddy validate --config /etc/caddy/Caddyfile  # Production
-caddy validate --config Caddyfile                   # Local
-```
+# Check DNS points to server
+nslookup example.com
 
-### Fix Permissions
+# Check ports are open
+sudo ss -tlnp | grep -E ':80|:443'
 
-```bash
-sudo chown -R caddy:caddy /var/www/sites/
-sudo chmod -R 755 /var/www/sites/
+# Check firewall
+sudo ufw status
+
+# Check Caddy logs for ACME errors
+sudo journalctl -u caddy | grep -i acme
 ```
 
 ### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| Port 80/443 in use | `sudo lsof -i :80` |
-| Permission denied | `sudo chown -R caddy:caddy` |
-| Config error | `caddy validate --config Caddyfile` |
+| Port 80/443 in use | `sudo lsof -i :80` to find process |
+| Permission denied | `sudo chown -R caddy:caddy /var/www/sites/` |
+| Config error | `sudo caddy validate --config /etc/caddy/Caddyfile` |
 | HTTPS not working | Check DNS, ports 80/443 open |
+| 404 errors | Check root path, file permissions |
 
 ---
 
