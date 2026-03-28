@@ -18,9 +18,13 @@ if [ -z "$BROWSERLESS_TOKEN" ] && [ -f "$HOME/.openclaw/.browserless_env" ]; the
     source "$HOME/.openclaw/.browserless_env" 2>/dev/null || true
 fi
 
-# Default token for skill (can be overridden)
+# Default token placeholder - MUST be set via environment variable
+# Get your token from: https://www.browserless.io/
 if [ -z "$BROWSERLESS_TOKEN" ]; then
-    BROWSERLESS_TOKEN="2U3jFeWFupLKhCm4dbca95a8ad82b31439c5729ffafec1f0e"
+    echo "Error: BROWSERLESS_TOKEN environment variable is required"
+    echo "Get your token at: https://www.browserless.io/"
+    echo "Then set it: export BROWSERLESS_TOKEN='your-token-here'"
+    exit 1
 fi
 
 BROWSERLESS_BASE_URL="https://production-${BROWSERLESS_REGION}.browserless.io"

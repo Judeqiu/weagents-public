@@ -4,8 +4,14 @@
 
 set -e
 
-# The Browserless API token
-DEFAULT_TOKEN="2U3jFeWFupLKhCm4dbca95a8ad82b31439c5729ffafec1f0e"
+# The Browserless API token - MUST be set by user
+# Get your token from: https://www.browserless.io/
+if [ -z "$BROWSERLESS_TOKEN" ]; then
+    echo "Error: Please set BROWSERLESS_TOKEN environment variable first"
+    echo "Get your token at: https://www.browserless.io/"
+    exit 1
+fi
+DEFAULT_TOKEN="$BROWSERLESS_TOKEN"
 
 echo "==================================="
 echo "Browserless API Setup"
