@@ -1,10 +1,14 @@
 ---
 name: ssh-config-add
-description: SAFELY add new SSH host entries to ~/.ssh/config. APPEND-ONLY - never modifies or deletes existing entries. Use when you need to create SSH shortcuts for new VMs. If host already exists, it will refuse to make any changes.
+description: Kimi CLI tool - SAFELY add new SSH host entries to ~/.ssh/config. APPEND-ONLY - never modifies or deletes existing entries. Use when helping users set up SSH shortcuts for new VMs. This is a tool for Kimi Code CLI, NOT for OpenClaw agents.
 version: 1.0.0
 ---
 
-# SSH Config Add - Append Only
+# SSH Config Add - Kimi CLI Tool
+
+**This is a tool for Kimi Code CLI to use, NOT for OpenClaw agents.**
+
+Use this skill when the user needs help setting up SSH shortcuts for their VMs.
 
 **⚠️ SAFETY FIRST: This tool is APPEND-ONLY**
 
