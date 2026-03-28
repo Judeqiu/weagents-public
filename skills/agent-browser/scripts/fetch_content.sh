@@ -1,11 +1,15 @@
 #!/bin/bash
-# Fetch Content - Smart content retrieval using all available browser methods
+# Fetch Content - Smart content retrieval
 #
-# This script tries multiple browser automation methods in order:
-# 1. agent-browser (local, fast, bundled Chromium)
-# 2. mychrome (Chrome CDP with persistent sessions)
-# 3. Browserless API (cloud fallback, always works)
-# 4. Search engine fallback (when --search-fallback is enabled)
+# PRIORITY NOTICE: This script delegates to smart_fetch.py for auto-mode priority decisions.
+# The SINGLE SOURCE OF TRUTH for fetch method priority is in smart_fetch.py.
+#
+# Priority order (defined in smart_fetch.py):
+#   1. mychrome (Chrome CDP)      - FIRST PRIORITY
+#   2. agent-browser (bundled)    - SECOND PRIORITY
+#   3. Browserless API            - THIRD PRIORITY
+#   4. curl                       - FOURTH PRIORITY
+#   5. Jina AI                    - FIFTH PRIORITY (optional)
 #
 # Usage: ./fetch_content.sh --url https://example.com [--output /tmp/content.html]
 
@@ -22,9 +26,12 @@ NC='\033[0m' # No Color
 URL=""
 OUTPUT=""
 VERBOSE=false
-METHOD=""  # auto, agent-browser, mychrome, browserless
+METHOD=""  # auto, mychrome, agent-browser, browserless, curl, jina
 TIMEOUT=30
 SEARCH_FALLBACK=false  # Use search as last resort
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo_verbose() {
     if [ "$VERBOSE" = true ]; then
@@ -36,6 +43,9 @@ show_help() {
     cat << EOF
 Fetch Content - Smart browser content retrieval
 
+NOTICE: Priority order is defined in smart_fetch.py (single source of truth).
+Current priority: mychrome > agent-browser > browserless > curl > jina
+
 USAGE:
     $0 --url <url> [options]
 
@@ -44,28 +54,28 @@ REQUIRED:
 
 OPTIONS:
     --output <path>       Save content to file (default: stdout)
-    --method <name>       Force specific method: agent-browser, mychrome, browserless
+    --method <name>       Force specific method: mychrome, agent-browser, browserless, curl, jina
     --timeout <seconds>   Timeout per method attempt (default: 30)
     --search-fallback     Use search engine as last resort (DuckDuckGo)
     --verbose, -v         Show detailed progress
     --help, -h            Show this help
 
-METHODS (tried in order):
-    1. agent-browser    Local bundled Chromium (fastest)
-    2. mychrome         Chrome CDP (persistent sessions)
-    3. browserless      Cloud API (always works)
-    4. curl             Simple HTTP request
-    5. search           Search engine fallback (if --search-fallback)
+METHODS (priority order from smart_fetch.py):
+    1. mychrome         Chrome CDP (persistent sessions) - FIRST
+    2. agent-browser    Local bundled Chromium - SECOND
+    3. browserless      Cloud API - THIRD
+    4. curl             Simple HTTP request - FOURTH
+    5. jina             Article preprocessing - FIFTH
 
 EXAMPLES:
-    # Fetch content (auto-select best method)
+    # Fetch content (auto-select best method using smart_fetch.py priority)
     $0 --url https://example.com
 
     # Save to file
     $0 --url https://example.com --output /tmp/page.html
 
     # Force specific method
-    $0 --url https://example.com --method browserless
+    $0 --url https://example.com --method mychrome
 
     # Verbose with custom timeout
     $0 --url https://example.com --verbose --timeout 60
@@ -74,8 +84,8 @@ EXAMPLES:
     $0 --url https://example.com --search-fallback
 
 ENVIRONMENT:
-    AGENT_BROWSER_ARGS    Args for agent-browser (default: --no-sandbox)
     CHROME_CDP_URL        Chrome CDP endpoint (default: http://localhost:9222)
+    AGENT_BROWSER_ARGS    Args for agent-browser (default: --no-sandbox)
     BROWSERLESS_TOKEN     Browserless API token (pre-configured in skill)
     BROWSERLESS_REGION    Browserless region: sfo, lon, ams (default: sfo)
 
@@ -138,7 +148,63 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-# Method 1: agent-browser
+# ============================================================================
+# INDIVIDUAL METHOD IMPLEMENTATIONS
+# These are used when --method is specified. For auto-mode, we delegate to
+# smart_fetch.py which contains the single source of truth for priority.
+# ============================================================================
+
+# Method: mychrome (Chrome CDP)
+try_mychrome() {
+    echo_verbose "Trying mychrome (Chrome CDP)..."
+    
+    local chrome_url="${CHROME_CDP_URL:-http://localhost:9222}"
+    local skill_path="$HOME/.openclaw/workspace/skills/mychrome"
+    
+    # Check if mychrome skill exists
+    if [ ! -d "$skill_path" ]; then
+        echo_verbose "mychrome skill not found at $skill_path"
+        return 1
+    fi
+    
+    # Check if Chrome is accessible
+    if ! curl -s "$chrome_url/json/version" > /dev/null 2>&1; then
+        echo_verbose "Chrome CDP not accessible at $chrome_url"
+        return 1
+    fi
+    
+    # Try to fetch content using mychrome
+    local temp_file=$(mktemp)
+    
+    if timeout $TIMEOUT bash -c "
+        export PATH=\"\$HOME/.local/share/fnm:\$PATH\"
+        eval \"\$(fnm env --shell bash 2>/dev/null)\"
+        
+        python3 '$skill_path/scripts/chrome_cdp_helper.py' \
+            --cdp-url '$chrome_url' \
+            --url '$URL' \
+            --extract-content > '$temp_file' 2>/dev/null
+    " 2>/dev/null; then
+        
+        if [ -s "$temp_file" ]; then
+            echo_verbose "mychrome succeeded"
+            if [ -n "$OUTPUT" ]; then
+                cat "$temp_file" > "$OUTPUT"
+                echo -e "${GREEN}✓ Content saved via mychrome${NC}"
+            else
+                cat "$temp_file"
+            fi
+            rm -f "$temp_file"
+            return 0
+        fi
+    fi
+    
+    rm -f "$temp_file"
+    echo_verbose "mychrome failed"
+    return 1
+}
+
+# Method: agent-browser (bundled Chromium)
 try_agent_browser() {
     echo_verbose "Trying agent-browser..."
     
@@ -178,58 +244,7 @@ try_agent_browser() {
     return 1
 }
 
-# Method 2: mychrome (Chrome CDP)
-try_mychrome() {
-    echo_verbose "Trying mychrome..."
-    
-    local chrome_url="${CHROME_CDP_URL:-http://localhost:9222}"
-    local skill_path="$HOME/.openclaw/workspace/skills/mychrome"
-    
-    # Check if mychrome skill exists
-    if [ ! -d "$skill_path" ]; then
-        echo_verbose "mychrome skill not found"
-        return 1
-    fi
-    
-    # Check if Chrome is accessible
-    if ! curl -s "$chrome_url/json/version" > /dev/null 2>&1; then
-        echo_verbose "Chrome CDP not accessible at $chrome_url"
-        return 1
-    fi
-    
-    # Try to fetch content using mychrome
-    local temp_file=$(mktemp)
-    
-    if timeout $TIMEOUT bash -c "
-        export PATH=\"\$HOME/.local/share/fnm:\$PATH\"
-        eval \"\$(fnm env --shell bash 2>/dev/null)\"
-        
-        python3 '$skill_path/scripts/chrome_cdp_helper.py' \
-            --cdp-url '$chrome_url' \
-            --url '$URL' \
-            --extract-content > '$temp_file' 2>/dev/null
-    " 2>/dev/null; then
-        
-        if [ -s "$temp_file" ]; then
-            echo_verbose "mychrome succeeded"
-            if [ -n "$OUTPUT" ]; then
-                # Extract content from JSON response
-                cat "$temp_file" > "$OUTPUT"
-                echo -e "${GREEN}✓ Content saved via mychrome${NC}"
-            else
-                cat "$temp_file"
-            fi
-            rm -f "$temp_file"
-            return 0
-        fi
-    fi
-    
-    rm -f "$temp_file"
-    echo_verbose "mychrome failed"
-    return 1
-}
-
-# Method 3: Browserless API (always works as last resort)
+# Method: Browserless API
 try_browserless() {
     echo_verbose "Trying Browserless API..."
     
@@ -267,7 +282,7 @@ try_browserless() {
     return 1
 }
 
-# Method 4: curl (simple HTTP fallback)
+# Method: curl (simple HTTP)
 try_curl() {
     echo_verbose "Trying curl (simple HTTP)..."
     
@@ -292,7 +307,37 @@ try_curl() {
     return 1
 }
 
-# Method 5: Search engine fallback (last resort)
+# Method: Jina AI (article preprocessing)
+try_jina() {
+    echo_verbose "Trying Jina AI..."
+    
+    local jina_url="https://r.jina.ai/${URL}"
+    local temp_file=$(mktemp)
+    
+    if timeout $TIMEOUT curl -s -L -A "Mozilla/5.0" "$jina_url" > "$temp_file" 2>/dev/null; then
+        if [ -s "$temp_file" ]; then
+            # Check if Jina returned valid content (not an error)
+            local content_head=$(head -c 200 "$temp_file")
+            if [[ ! "$content_head" =~ ^Error: ]]; then
+                echo_verbose "Jina succeeded"
+                if [ -n "$OUTPUT" ]; then
+                    mv "$temp_file" "$OUTPUT"
+                    echo -e "${GREEN}✓ Content saved via Jina AI${NC}"
+                else
+                    cat "$temp_file"
+                    rm "$temp_file"
+                fi
+                return 0
+            fi
+        fi
+    fi
+    
+    rm -f "$temp_file"
+    echo_verbose "Jina failed"
+    return 1
+}
+
+# Method: Search engine fallback (last resort)
 try_search_fallback() {
     echo_verbose "Trying search engine fallback..."
     
@@ -471,64 +516,118 @@ PYTHON_EOF
     return 1
 }
 
-# Main fetch logic
-fetch_content() {
+# ============================================================================
+# AUTO-MODE: Delegate to smart_fetch.py (Single Source of Truth)
+# ============================================================================
+
+fetch_auto() {
+    echo "Fetching: $URL"
+    echo ""
+    echo -e "${BLUE}Using smart_fetch.py for priority decision (mychrome > agent-browser > browserless > curl > jina)${NC}"
+    echo ""
+    
+    local smart_fetch="$SCRIPT_DIR/smart_fetch.py"
+    
+    # Check if smart_fetch.py exists
+    if [ ! -f "$smart_fetch" ]; then
+        echo -e "${RED}Error: smart_fetch.py not found at $smart_fetch${NC}"
+        echo -e "${YELLOW}Falling back to built-in priority...${NC}"
+        fetch_auto_builtin
+        return $?
+    fi
+    
+    # Build arguments for smart_fetch.py
+    local args=("--url" "$URL")
+    
+    if [ "$VERBOSE" = true ]; then
+        args+=("--json")  # JSON output for verbose parsing
+    fi
+    
+    if [ "$SEARCH_FALLBACK" = true ]; then
+        # smart_fetch.py doesn't have search fallback, we'll handle it
+        :  # No-op
+    fi
+    
+    # Run smart_fetch.py
+    local temp_file=$(mktemp)
+    local exit_code=0
+    
+    if timeout $((TIMEOUT * 3)) python3 "$smart_fetch" "${args[@]}" > "$temp_file" 2>/dev/null; then
+        if [ -s "$temp_file" ]; then
+            # Parse JSON output to get method info
+            local method=$(python3 -c "import json,sys; d=json.load(open('$temp_file')); print(d.get('method','unknown'))" 2>/dev/null || echo "unknown")
+            
+            if [ "$method" != "unknown" ] && [ "$method" != "" ]; then
+                echo -e "${GREEN}✓ Success using: $method${NC}"
+            fi
+            
+            if [ -n "$OUTPUT" ]; then
+                if [ "$VERBOSE" = true ]; then
+                    # For verbose, extract just the content
+                    python3 -c "import json,sys; d=json.load(open('$temp_file')); print(d.get('content',''))" > "$OUTPUT" 2>/dev/null || cat "$temp_file" > "$OUTPUT"
+                else
+                    cat "$temp_file" > "$OUTPUT"
+                fi
+                echo "  Saved to: $OUTPUT"
+            else
+                if [ "$VERBOSE" = true ]; then
+                    python3 -c "import json,sys; d=json.load(open('$temp_file')); print(d.get('content',''))" 2>/dev/null || cat "$temp_file"
+                else
+                    cat "$temp_file"
+                fi
+            fi
+            rm -f "$temp_file"
+            return 0
+        fi
+    fi
+    
+    rm -f "$temp_file"
+    
+    # If smart_fetch.py failed and search fallback is enabled, try it
+    if [ "$SEARCH_FALLBACK" = true ]; then
+        echo -e "${YELLOW}smart_fetch.py failed, trying search fallback...${NC}"
+        if try_search_fallback; then
+            return 0
+        fi
+    fi
+    
+    echo -e "${RED}✗ All methods failed${NC}"
+    echo ""
+    echo "Tried methods (in priority order):"
+    echo "  1. mychrome (Chrome CDP) - FIRST"
+    echo "  2. agent-browser (bundled Chromium) - SECOND"
+    echo "  3. Browserless API (cloud) - THIRD"
+    echo "  4. curl (simple HTTP) - FOURTH"
+    echo "  5. Jina AI (article preprocessing) - FIFTH"
+    if [ "$SEARCH_FALLBACK" = true ]; then
+        echo "  6. search engine fallback"
+    fi
+    echo ""
+    echo "Possible issues:"
+    echo "  - Chrome CDP not running (try: mychrome skill)"
+    echo "  - agent-browser not installed"
+    echo "  - Network connectivity issues"
+    echo "  - Site blocks all automation methods"
+    return 1
+}
+
+# Built-in auto-mode (fallback when smart_fetch.py is not available)
+fetch_auto_builtin() {
     echo "Fetching: $URL"
     echo ""
     
     local success_method=""
     
-    # If specific method requested, try only that
-    if [ -n "$METHOD" ]; then
-        case $METHOD in
-            agent-browser)
-                if try_agent_browser; then
-                    success_method="agent-browser"
-                fi
-                ;;
-            mychrome)
-                if try_mychrome; then
-                    success_method="mychrome"
-                fi
-                ;;
-            browserless)
-                if try_browserless; then
-                    success_method="browserless"
-                fi
-                ;;
-            curl)
-                if try_curl; then
-                    success_method="curl"
-                fi
-                ;;
-            search)
-                if try_search_fallback; then
-                    success_method="search"
-                fi
-                ;;
-            *)
-                echo -e "${RED}Unknown method: $METHOD${NC}"
-                exit 2
-                ;;
-        esac
-        
-        if [ -z "$success_method" ]; then
-            echo -e "${RED}✗ Method '$METHOD' failed${NC}"
-            exit 1
-        fi
-        return 0
-    fi
-    
-    # Auto mode: try all methods in order
-    echo -e "${YELLOW}Trying agent-browser (local Chromium)...${NC}"
-    if try_agent_browser; then
-        success_method="agent-browser"
+    # Priority order (should match smart_fetch.py)
+    echo -e "${YELLOW}Trying mychrome (Chrome CDP)...${NC}"
+    if try_mychrome; then
+        success_method="mychrome"
     fi
     
     if [ -z "$success_method" ]; then
-        echo -e "${YELLOW}Trying mychrome (Chrome CDP)...${NC}"
-        if try_mychrome; then
-            success_method="mychrome"
+        echo -e "${YELLOW}Trying agent-browser (bundled Chromium)...${NC}"
+        if try_agent_browser; then
+            success_method="agent-browser"
         fi
     fi
     
@@ -543,6 +642,13 @@ fetch_content() {
         echo -e "${YELLOW}Trying curl (simple HTTP)...${NC}"
         if try_curl; then
             success_method="curl"
+        fi
+    fi
+    
+    if [ -z "$success_method" ]; then
+        echo -e "${YELLOW}Trying Jina AI...${NC}"
+        if try_jina; then
+            success_method="jina"
         fi
     fi
     
@@ -564,32 +670,81 @@ fetch_content() {
         return 0
     else
         echo -e "${RED}✗ All methods failed${NC}"
-        echo ""
-        echo "Tried:"
-        echo "  1. agent-browser (local Chromium)"
-        echo "  2. mychrome (Chrome CDP)"
-        echo "  3. Browserless API (cloud)"
-        echo "  4. curl (simple HTTP)"
-        if [ "$SEARCH_FALLBACK" = true ]; then
-            echo "  5. search engine fallback"
-        fi
-        echo ""
-        echo "Possible issues:"
-        echo "  - URL is not accessible"
-        echo "  - Network connectivity issues"
-        echo "  - Site blocks all automation methods"
-        if [ "$SEARCH_FALLBACK" = false ]; then
-            echo ""
-            echo "Tip: Use --search-fallback to try search engine as last resort"
-        fi
         return 1
     fi
 }
 
-# Main
+# ============================================================================
+# MAIN
+# ============================================================================
+
 main() {
     parse_args "$@"
-    fetch_content
+    
+    # If specific method requested, use it directly
+    if [ -n "$METHOD" ]; then
+        echo "Fetching: $URL (method: $METHOD)"
+        echo ""
+        
+        case $METHOD in
+            mychrome)
+                if try_mychrome; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            agent-browser)
+                if try_agent_browser; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            browserless)
+                if try_browserless; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            curl)
+                if try_curl; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            jina)
+                if try_jina; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            search)
+                if try_search_fallback; then
+                    exit 0
+                else
+                    echo -e "${RED}✗ Method '$METHOD' failed${NC}"
+                    exit 1
+                fi
+                ;;
+            *)
+                echo -e "${RED}Unknown method: $METHOD${NC}"
+                echo "Valid methods: mychrome, agent-browser, browserless, curl, jina, search"
+                exit 2
+                ;;
+        esac
+    fi
+    
+    # Auto mode: delegate to smart_fetch.py
+    fetch_auto
 }
 
 main "$@"

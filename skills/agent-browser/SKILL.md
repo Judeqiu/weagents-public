@@ -1,503 +1,403 @@
 ---
-name: agent-browser
-description: Use when automating browser interactions, web scraping, testing web applications, or controlling headless browsers via CLI for AI agents
+skill_name: agent-browser
+skill_version: 2.0.0
+skill_type: natural_language
+claude_version: requires_claude_4_or_later
+description: |
+  Web browsing and content extraction skill using natural language decision flow.
+  Prioritizes Chrome CDP for dynamic sites, with automatic fallback through multiple methods.
 ---
 
-# Agent Browser
+# Agent Browser - Natural Language Skill
 
 ## Overview
 
-Headless browser automation CLI for AI agents. Fast Rust CLI with Node.js fallback. Provides deterministic element selection via accessibility tree snapshots with refs (@e1, @e2).
+This skill enables web browsing and content extraction using a **natural language decision flow**. Instead of rigid scripts, Claude interprets the task and selects the appropriate method dynamically.
 
-## When to Use
+### Core Philosophy
 
-- **Web automation workflows**: Form filling, clicking, navigation
-- **Web scraping**: Extract data from web pages
-- **Web application testing**: E2E testing, screenshot comparison
-- **Authentication flows**: Login automation with state persistence
-- **Visual regression**: Compare screenshots or snapshots between versions
+> **Be like a human researcher**: Start simple, escalate complexity only when needed, adapt based on what you find.
 
-**Use mychrome instead when:**
-- You need **real Google Chrome** (not bundled Chromium)
-- You need **persistent login sessions** across restarts
-- You're working with sites that detect headless browsers
-- You need Chrome extensions or specific Chrome features
-- See [Alternative: mychrome](#alternative-mychrome-chrome-cdp) section below
+### Method Priority (Natural Language Decision Tree)
 
-**Don't use when:**
-- Making simple HTTP requests (use curl/httpie instead)
-- API testing (use direct API clients)
-- You need persistent browser sessions (use **mychrome** instead)
-
-## Core Pattern
-
-The snapshot-ref workflow is optimal for LLMs:
+When asked to fetch or browse a web page, follow this priority order:
 
 ```
-1. OPEN  → agent-browser open <url>
-2. SNAP   → agent-browser snapshot -i    # Get interactive elements with refs
-3. ACT    → agent-browser click @e1      # Use refs from snapshot
-4. REPEAT → Re-snapshot after page changes
+1. Chrome CDP (mychrome)     ← FIRST if CDP is available and site needs real browser
+2. Bundled Chromium          ← SECOND if agent-browser is installed  
+3. Browserless API           ← THIRD as cloud fallback
+4. curl / FetchURL           ← FOURTH for simple static pages
+5. Jina AI Summarizer        ← FIFTH for articles (saves tokens)
 ```
 
-## Quick Reference
+---
 
-### Essential Commands
+## Tool Usage Reference
 
-| Command | Purpose |
-|---------|---------|
-| `open <url>` | Navigate to URL |
-| `snapshot -i` | Get interactive elements with refs (@e1, @e2) |
-| `click @eN` | Click element by ref |
-| `fill @eN "text"` | Clear and fill input |
-| `type @eN "text"` | Type into element |
-| `get text @eN` | Get element text content |
-| `screenshot [path]` | Take screenshot (--full for full page) |
-| `close` | Close browser |
+### Quick Decision Matrix
 
-### Element Selection
+| Site Characteristics | Recommended Approach | Claude Tool |
+|---------------------|---------------------|-------------|
+| Needs login / persistent session | Chrome CDP | Shell → mychrome scripts |
+| Anti-bot protection (小红书, 微信, 知乎) | Real browser required | Chrome CDP or Browserless |
+| Simple static HTML | Fastest approach | FetchURL or curl |
+| Article, blog, documentation | Token-efficient | Jina AI service |
+| JavaScript-heavy SPA | Browser rendering required | Chrome CDP or agent-browser |
+| Unknown / first visit | Auto-detect | Start with curl, escalate if needed |
 
+### Tool Selection Patterns
+
+#### Pattern 1: Chrome CDP (mychrome)
+**When to use:**
+- Site requires login/authentication
+- Persistent session needed across requests
+- Real Chrome fingerprint required
+- Previous attempts with simpler methods failed
+
+**How to check availability:**
 ```bash
-# By ref (deterministic, preferred)
-agent-browser click @e2
-
-# By CSS selector
-agent-browser click "#submit"
-agent-browser click ".button-class"
-
-# By ARIA role
-agent-browser find role button click --name "Submit"
-
-# By text content
-agent-browser find text "Sign In" click
+curl -s http://localhost:9222/json/version
 ```
 
-### Session Management
-
+**How to use:**
 ```bash
-# Isolated sessions
-agent-browser --session agent1 open site-a.com
-agent-browser --session agent2 open site-b.com
-
-# Persistent state across restarts
-agent-browser --session-name myapp open myapp.com
-
-# Persistent profile directory
-agent-browser --profile ~/.myapp-profile open myapp.com
-```
-
-### Installation
-
-```bash
-# Global install (fastest - native Rust CLI)
-npm install -g agent-browser
-agent-browser install  # Download Chromium
-
-# Or try without installing
-npx agent-browser install
-npx agent-browser open example.com
-
-# On Linux - with system deps
-agent-browser install --with-deps
-```
-
-### Linux/VPS Configuration
-
-On Ubuntu 23.10+ and some Linux distributions, Chrome requires additional configuration:
-
-```bash
-# Option 1: Use --no-sandbox flag (recommended for VPS/containers)
-agent-browser --args "--no-sandbox" open example.com
-
-# Option 2: Set environment variable (permanent solution)
-export AGENT_BROWSER_ARGS="--no-sandbox"
-# Add to ~/.bashrc to make permanent
-```
-
-**Why:** Modern Linux distributions restrict unprivileged user namespaces with AppArmor. The `--no-sandbox` flag is required for Chrome to run in these environments.
-
-## Implementation
-
-### Basic Workflow Example
-
-```bash
-# 1. Navigate
-agent-browser open example.com
-
-# 2. Get snapshot with refs
-agent-browser snapshot -i
-# Output shows refs like: [ref=e1] button "Submit"
-
-# 3. Interact using refs
-agent-browser click @e1
-agent-browser fill @e2 "test@example.com"
-
-# 4. Take screenshot
-agent-browser screenshot result.png
-
-# 5. Cleanup
-agent-browser close
-```
-
-### Chaining Commands
-
-```bash
-# Chain with && for efficiency
-agent-browser open example.com && \
-  agent-browser wait --load networkidle && \
-  agent-browser snapshot -i
-
-# Multi-step interaction
-agent-browser fill @e1 "user@example.com" && \
-  agent-browser fill @e2 "password" && \
-  agent-browser click @e3
-```
-
-### State Persistence
-
-```bash
-# Save auth state after login
-agent-browser state save github-auth
-
-# Load state in future sessions
-agent-browser state load github-auth
-```
-
-### Diff & Regression Testing
-
-```bash
-# Compare snapshots
-agent-browser diff snapshot
-
-# Compare screenshots
-agent-browser diff screenshot --baseline before.png
-
-# Compare two URLs
-agent-browser diff url https://v1.com https://v2.com
-```
-
-## Alternative Methods
-
-When agent-browser (bundled Chromium) doesn't work, you have two fallback options:
-
-### Option 1: mychrome (Chrome CDP) - RECOMMENDED
-
-For use cases requiring **real Google Chrome** with persistent sessions, use the **mychrome** skill instead.
-
-### When to Use mychrome vs agent-browser
-
-| Use Case | Recommended Tool | Why |
-|----------|------------------|-----|
-| Quick scraping, no login needed | **agent-browser** | Fast, ephemeral, snapshot-based |
-| Sites requiring real Chrome | **mychrome** | Uses actual Google Chrome binary |
-| Persistent login sessions | **mychrome** | Chrome profile persists across sessions |
-| Chrome extensions needed | **mychrome** | Real Chrome supports extensions |
-| Complex Playwright workflows | **mychrome** | Full Playwright API access |
-| Quick snapshot interactions | **agent-browser** | @e1, @e2 refs are deterministic |
-
-### Using mychrome
-
-```bash
-# Check if Chrome CDP is running
-curl http://localhost:9222/json/version
-
-# Use mychrome skill for Chrome CDP automation
-~/.openclaw/workspace/skills/mychrome/scripts/chrome_manager.sh status
-
-# Take screenshot with mychrome
+# Basic fetch with CDP
 python3 ~/.openclaw/workspace/skills/mychrome/scripts/chrome_cdp_helper.py \
-  --url https://example.com \
+  --cdp-url http://localhost:9222 \
+  --url "https://example.com" \
+  --extract-content
+
+# With screenshot
+python3 ~/.openclaw/workspace/skills/mychrome/scripts/chrome_cdp_helper.py \
+  --cdp-url http://localhost:9222 \
+  --url "https://example.com" \
   --screenshot /tmp/screenshot.png
 ```
 
-### Key Differences
-
-| Feature | agent-browser | mychrome |
-|---------|---------------|----------|
-| **Browser** | Bundled Chromium | Real Google Chrome |
-| **Installation** | `npm install -g agent-browser` | Chrome must be pre-installed |
-| **Session** | Ephemeral (default) | Persistent profiles |
-| **Element IDs** | @e1, @e2 snapshot refs | CSS selectors, Playwright API |
-| **Speed** | Very fast (Rust) | Standard (Playwright) |
-| **CDP Required** | No | Yes (Chrome must run with --remote-debugging-port=9222) |
-| **Best For** | Quick tasks, testing | Automation with login state |
-
-**Tip:** Start with `agent-browser` for quick tasks. Switch to `mychrome` when you need persistent sessions or real Chrome behavior.
-
----
-
-## 🚀 Smart Fetch Scripts (RECOMMENDED)
-
-The easiest way to retrieve content or screenshots is using the **smart fetch scripts**, which automatically try all available methods until one succeeds.
-
-### fetch_content.sh - Smart Content Retrieval
-
-Automatically tries all browser methods in order:
-1. **agent-browser** (local, fastest)
-2. **mychrome** (Chrome CDP)
-3. **Browserless API** (cloud fallback)
-4. **curl** (simple HTTP)
-5. **Search fallback** (DuckDuckGo search results - when `--search-fallback` enabled)
-
-```bash
-# Fetch content (auto-selects best method)
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com
-
-# Save to file
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com \
-  --output /tmp/content.html
-
-# Verbose mode to see which method was used
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com \
-  --verbose
-
-# Force specific method
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com \
-  --method browserless
-
-# Use search engine as last resort (when all browser methods fail)
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com \
-  --search-fallback
-
-# Force search method only (useful when direct access is blocked)
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://example.com \
-  --method search
-```
-
-### fetch_screenshot.sh - Smart Screenshot Capture
-
-Same smart fallback logic for screenshots:
-
-```bash
-# Capture screenshot
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
-  --url https://example.com \
-  --output /tmp/screenshot.png
-
-# Full page screenshot
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
-  --url https://example.com \
-  --output /tmp/full.png \
-  --full-page
-
-# Mobile viewport
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_screenshot.sh \
-  --url https://example.com \
-  --output /tmp/mobile.png \
-  --width 375 --height 812
-```
-
-### Why Use Smart Fetch?
-
-| Benefit | Description |
-|---------|-------------|
-| **Zero config** | Works out of the box, tries all methods automatically |
-| **Resilient** | If one method fails, automatically tries the next |
-| **Fast** | Uses fastest available method first |
-| **Reliable** | Always falls back to Browserless API (cloud) if needed |
-| **Search fallback** | When all else fails, can search for the content via DuckDuckGo |
-
-### Search Fallback Feature
-
-When you enable `--search-fallback`, the script will try DuckDuckGo search as a last resort if all browser methods fail:
-
-```bash
-# Auto-mode with search fallback
-~/.openclaw/workspace/skills/agent-browser/scripts/fetch_content.sh \
-  --url https://blocked-site.com \
-  --search-fallback \
-  --output /tmp/results.html
-```
-
-**What it does:**
-1. Searches DuckDuckGo for the URL/domain
-2. Returns formatted HTML with search results
-3. If search is blocked (common on VPS IPs), provides alternative access links:
-   - Google Search
-   - Google Cache
-   - Wayback Machine
-   - Bing Search
-
+#### Pattern 2: Bundled Chromium (agent-browser)
 **When to use:**
-- Accessing sites that block all browser automation
-- When domain is inaccessible but you need information about it
-- As a last resort when all other methods fail
+- Quick browsing tasks
+- No persistent session needed
+- Fast snapshot-based interactions
+- CDP not available
 
-**Note:** Search engines may block automated requests from VPS/cloud IPs. The fallback always returns a helpful HTML page with alternative access methods.
-
-### Example Output
-
+**How to check availability:**
+```bash
+which agent-browser
 ```
-$ ./fetch_content.sh --url https://example.com --verbose
-Fetching: https://example.com
 
-[INFO] Trying agent-browser...
-[INFO] agent-browser failed
-[INFO] Trying mychrome...
-[INFO] mychrome failed
-[INFO] Trying Browserless API...
-[INFO] Browserless succeeded
+**How to use:**
+```bash
+# Open and get snapshot
+agent-browser open "https://example.com"
+agent-browser snapshot -i
+agent-browser close
 
-✓ Success using: browserless
+# Or chained
+agent-browser open "https://example.com" && \
+  agent-browser content && \
+  agent-browser close
+```
+
+#### Pattern 3: Browserless API (Cloud)
+**When to use:**
+- No local browser available
+- Previous methods blocked
+- Remote/cloud environment
+- Need guaranteed availability
+
+**How to use:**
+```bash
+# Content extraction
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh \
+  content --url "https://example.com"
+
+# Screenshot
+~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh \
+  screenshot --url "https://example.com" --output /tmp/screenshot.png
+```
+
+#### Pattern 4: Simple HTTP (curl / FetchURL)
+**When to use:**
+- Static HTML pages
+- API endpoints
+- Fastest possible retrieval
+- No JavaScript execution needed
+
+**How to use:**
+```bash
+# Using curl
+curl -sL -A "Mozilla/5.0" "https://example.com"
+
+# For FetchURL tool, just provide the URL directly
+```
+
+#### Pattern 5: Jina AI (Article Summarizer)
+**When to use:**
+- Article, blog post, documentation
+- Need Markdown format
+- Want to save tokens
+- URL pattern suggests article (/blog/, /article/, /docs/, date paths)
+
+**How to use:**
+```bash
+# Jina AI service
+curl -sL "https://r.jina.ai/https://example.com/article"
 ```
 
 ---
 
----
+## Site Experience Database
 
-### Option 2: Browserless API - LAST RESORT
+### Known Anti-Bot Platforms
 
-When neither agent-browser nor mychrome works (no Chrome available, incompatible system, or remote environment without browser access), use **Browserless** cloud-hosted browser automation.
+These sites typically require a real browser (Chrome CDP or Browserless):
 
-#### What is Browserless?
+| Platform | Domain Pattern | Special Handling |
+|----------|---------------|------------------|
+| 小红书 (Red) | xiaohongshu.com, xhslink.com | Strict anti-bot, login required for full content |
+| 微信公众号 | mp.weixin.qq.com | SSR with protection, lazy images |
+| 知乎 (Zhihu) | zhihu.com | Hybrid rendering, scroll to load |
+| 微博 (Weibo) | weibo.com | Strict login requirement |
+| 抖音 (TikTok) | douyin.com | SPA, heavy anti-bot |
+| Bilibili | bilibili.com | Dynamic content |
+| Taobao/Tmall | taobao.com, tmall.com | Login required for most content |
+| JD.com | jd.com | Anti-scraping protection |
+| LinkedIn | linkedin.com | Strict bot detection |
+| Instagram | instagram.com | Login wall |
+| Twitter/X | twitter.com, x.com | Rate limiting, dynamic |
 
-Browserless provides cloud-hosted browser automation via API:
-- **No local browser installation required**
-- **REST API** for simple operations (screenshots, PDFs, content)
-- **WebSocket API** for full Puppeteer/Playwright control
-- **Multiple regions** (US West, Europe UK, Amsterdam)
+### Site Pattern Files
 
-#### Browserless REST API (Simple Operations)
-
-```bash
-# Set your token (provided by admin)
-export BROWSERLESS_TOKEN="your-token-here"
-
-# Take screenshot
-~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh screenshot \
-  --url https://example.com \
-  --output /tmp/screenshot.png
-
-# Extract page content
-~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh content \
-  --url https://example.com
-
-# Generate PDF
-~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh pdf \
-  --url https://example.com \
-  --output /tmp/page.pdf
-
-# Check API status
-~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh status
+Detailed patterns are stored in:
+```
+references/site-patterns/
+├── xiaohongshu.com.md
+├── mp.weixin.qq.com.md
+├── zhihu.com.md
+└── weibo.com.md
 ```
 
-#### Browserless WebSocket (Full Control)
-
-```bash
-# Connect via WebSocket for full Puppeteer/Playwright control
-export BROWSERLESS_TOKEN="your-token-here"
-export BROWSERLESS_WS_URL="wss://production-sfo.browserless.io/chrome"
-
-# Run script with browserless
-node scripts/browserless_ws_example.js
-```
-
-#### Browserless Regions
-
-| Region | URL | Best For |
-|--------|-----|----------|
-| US West | `production-sfo.browserless.io` | Americas, Asia-Pacific |
-| Europe UK | `production-lon.browserless.io` | UK, Western Europe |
-| Amsterdam | `production-ams.browserless.io` | Europe, Africa |
-
-#### When to Use Each Method
-
-| Scenario | Recommended Tool | Why |
-|----------|------------------|-----|
-| Local quick tasks | **agent-browser** | Fast, no external dependencies |
-| Persistent login sessions | **mychrome** | Chrome profile persists across sessions |
-| Sites requiring real Chrome | **mychrome** | Uses actual Google Chrome binary |
-| No Chrome/CDP available locally | **Browserless** | Cloud-hosted, no local browser needed |
-| Remote server without browser | **Browserless** | Works anywhere with HTTP access |
-| ARM/unsupported architecture | **Browserless** | Cloud handles browser execution |
-| Blocked by corporate firewall | **Browserless** | Uses standard HTTPS (port 443) |
-
-#### Browserless Token Setup
-
-The agent-browser skill comes with a pre-configured Browserless API token. No setup required!
-
-```bash
-# Token is already embedded in the skill
-# Just use it directly:
-~/.openclaw/workspace/skills/agent-browser/scripts/browserless_helper.sh status
-
-# Optional: Choose region (default: sfo)
-export BROWSERLESS_REGION="lon"  # Options: sfo, lon, ams
-```
-
-**Default Configuration:**
-- **Token**: Pre-configured (embedded in skill)
-- **Region**: US West (San Francisco)
-- **Base URL**: `https://production-sfo.browserless.io`
-
-**To customize (optional):**
-```bash
-# Run setup script to save to shell profile
-~/.openclaw/workspace/skills/agent-browser/scripts/setup_browserless.sh
-
-# Or manually set your own token
-export BROWSERLESS_TOKEN="your-own-token"
-export BROWSERLESS_REGION="lon"  # Change region
-```
-
-#### Browserless Pricing
-
-- **Free tier**: Limited daily requests
-- **Paid plans**: Scale with usage
-- **Enterprise**: Custom plans available
-- Contact admin for organization token
+**When browsing these sites:**
+1. Read the pattern file first
+2. Note the "Platform Features" and "Known Traps" sections
+3. Use the suggested selectors and approaches
 
 ---
 
-## Common Mistakes
+## Natural Language Workflows
 
-| Mistake | Fix |
-|---------|-----|
-| Using CSS selectors instead of refs | Use refs from snapshot for deterministic selection |
-| Not re-snapshotting after actions | Always snapshot after page changes to get fresh refs |
-| Forgetting to close browser | Run `agent-browser close` or use `--session` for isolation |
-| Using npx for regular use | Install globally: `npm install -g agent-browser` |
-| Long timeouts without adjustment | Set `AGENT_BROWSER_DEFAULT_TIMEOUT` for slow pages |
-| Using agent-browser when you need persistent login | Switch to **mychrome** for session persistence |
+### Workflow 1: Simple Page Fetch
 
-## Security Features (Opt-in)
+**User says:** "Get me the content from https://example.com"
 
-```bash
-# Domain allowlist
-agent-browser --allowed-domains "example.com,*.example.com" open example.com
+**Claude should think:**
+1. Is this a known anti-bot site? → Check site patterns
+2. Is it an article/blog URL? → Consider Jina AI
+3. Start simple: try curl/FetchURL first
+4. If that fails → escalate to browser
 
-# Content boundaries for LLM safety
-agent-browser --content-boundaries snapshot
-
-# Output limits
-agent-browser --max-output 50000 snapshot
+**Execution:**
+```
+Step 1: Try curl
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 2: Try Chrome CDP (if available)
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 3: Try agent-browser
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 4: Try Browserless API
+  ↓ Success? → Return content
+  ↓ Fail? → Report failure with suggestions
 ```
 
-## Environment Variables
+### Workflow 2: Article Extraction
 
-| Variable | Purpose |
-|----------|---------|
-| `AGENT_BROWSER_SESSION` | Session name for isolation |
-| `AGENT_BROWSER_SESSION_NAME` | Auto-save/load session state |
-| `AGENT_BROWSER_DEFAULT_TIMEOUT` | Default timeout in ms (default: 25000) |
-| `AGENT_BROWSER_HEADED` | Show browser window for debugging |
-| `AGENT_BROWSER_ANNOTATE` | Annotated screenshots with labels |
+**User says:** "Summarize this article: https://blog.example.com/post-123"
+
+**Claude should think:**
+1. URL pattern suggests article (/blog/, /post-/) → Jina AI is ideal
+2. Try Jina first for token efficiency
+3. If Jina fails → fall back to browser
+
+**Execution:**
+```
+Step 1: Try Jina AI
+  ↓ Success? → Return markdown content
+  ↓ Fail?
+Step 2: Try curl (in case Jina service is down)
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 3: Try Chrome CDP / agent-browser
+  ↓ Success? → Return content
+```
+
+### Workflow 3: Dynamic Site with Login
+
+**User says:** "Check my notifications on https://site.com/dashboard"
+
+**Claude should think:**
+1. Dashboard = dynamic site, likely requires login
+2. Need persistent session → Chrome CDP required
+3. Check if CDP is available
+4. May need user to log in first
+
+**Execution:**
+```
+Step 1: Check Chrome CDP availability
+  ↓ Available?
+    → Use mychrome scripts
+    → User may need to log in manually first
+  ↓ Not available?
+    → Report: "Chrome CDP required for login sites"
+    → Suggest: Start Chrome with --remote-debugging-port=9222
+```
+
+### Workflow 4: Anti-Bot Site
+
+**User says:** "Get content from https://xiaohongshu.com/note/123"
+
+**Claude should think:**
+1. xiaohongshu.com = known anti-bot platform
+2. Read site pattern file for specific guidance
+3. Skip simple methods (curl/Jina), go straight to browser
+4. Chrome CDP preferred over bundled Chromium
+
+**Execution:**
+```
+Step 1: Read references/site-patterns/xiaohongshu.com.md
+Step 2: Try Chrome CDP (with noted selectors from pattern)
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 3: Try agent-browser with stealth mode
+  ↓ Success? → Return content
+  ↓ Fail?
+Step 4: Try Browserless API
+```
+
+### Workflow 5: Multi-Page Research
+
+**User says:** "Research these 5 companies: [urls...]"
+
+**Claude should think:**
+1. Multiple independent targets → Parallel execution possible
+2. Each URL may need different approach
+3. Use parallel_research.py or handle sequentially
+
+**Execution:**
+```
+Option A: Use parallel_research.py script
+  → Concurrent execution
+  → Each URL gets appropriate method
+
+Option B: Sequential with method selection per URL
+  → For each URL:
+    → Detect best method
+    → Fetch content
+    → Aggregate results
+```
 
 ---
 
-## Files
+## Helper Scripts Reference
 
-| File | Purpose |
-|------|---------|
-| `scripts/fetch_content.sh` | **Smart content retrieval** - tries all methods automatically (RECOMMENDED) |
-| `scripts/fetch_screenshot.sh` | **Smart screenshot capture** - tries all methods automatically (RECOMMENDED) |
-| `scripts/browserless_helper.sh` | Browserless API helper for cloud browser automation |
-| `scripts/setup_browserless.sh` | Setup script for Browserless configuration |
-| `install.sh` | Installation script for agent-browser npm package |
-| `SKILL.md` | This documentation |
+These scripts are available but Claude decides when to use them based on context:
+
+| Script | Purpose | When to Invoke |
+|--------|---------|----------------|
+| `scripts/browserless_helper.sh` | Cloud browser API | When local browsers unavailable |
+| `scripts/site_experience.py` | Query site patterns | Before browsing known platforms |
+| `scripts/parallel_research.py` | Multi-URL parallel | Research tasks with 3+ URLs |
+| `scripts/jina_fetch.py` | Jina AI wrapper | Article extraction with validation |
+
+---
+
+## Error Handling Patterns
+
+### Pattern: "Connection refused" on CDP
+```
+Error: curl: (7) Failed to connect to localhost:9222
+
+Interpretation: Chrome CDP not running
+Response: 
+  1. Check if Chrome is running with remote debugging
+  2. If not available, fall back to agent-browser
+  3. If agent-browser not available, use Browserless API
+```
+
+### Pattern: "403 Forbidden" or blocking
+```
+Error: HTTP 403, or empty content from curl
+
+Interpretation: Site blocks simple HTTP requests
+Response:
+  1. Escalate to browser automation
+  2. Check site patterns for known anti-bot measures
+  3. Use stealth techniques if available
+```
+
+### Pattern: JavaScript-required content
+```
+Observation: curl returns skeleton HTML, content loaded via JS
+
+Interpretation: SPA or dynamic site
+Response:
+  1. Must use browser automation (CDP, agent-browser, or Browserless)
+  2. Wait for networkidle before extracting
+```
+
+---
+
+## Best Practices (Natural Language Guidelines)
+
+### Do:
+- **Start simple**, escalate complexity only when needed
+- **Check site patterns** before attempting known anti-bot platforms
+- **Prefer Jina AI** for articles to save tokens
+- **Use Chrome CDP** when persistent sessions matter
+- **Cache results** when appropriate
+- **Report which method succeeded** for transparency
+
+### Don't:
+- Don't use curl for known anti-bot sites (wastes time)
+- Don't use Jina for product pages or dashboards (wrong tool)
+- Don't skip reading site patterns for complex platforms
+- Don't forget to handle timeouts gracefully
+
+---
+
+## Version History
+
+- **v2.0.0** - Refactored to natural language skill
+- **v1.5.0** - Added smart_fetch.py with priority order
+- **v1.0.0** - Basic agent-browser CLI wrapper
+
+---
+
+## Metadata for Claude
+
+<skill_metadata>
+<priority_order>
+1. Chrome CDP (mychrome) - for persistent sessions and real Chrome
+2. Bundled Chromium (agent-browser) - for quick tasks
+3. Browserless API - for cloud fallback
+4. curl/FetchURL - for static pages
+5. Jina AI - for articles
+</priority_order>
+
+<anti_bot_sites>
+xiaohongshu.com, mp.weixin.qq.com, zhihu.com, weibo.com, 
+douyin.com, bilibili.com, taobao.com, linkedin.com, instagram.com
+</anti_bot_sites>
+
+<article_patterns>
+/blog/, /article/, /post/, /news/, /docs/, /guide/, /tutorial/,
+date paths (/2024/01/01/), long content slugs
+</article_patterns>
+
+<cdp_endpoint>http://localhost:9222</cdp_endpoint>
+
+<site_patterns_dir>references/site-patterns/</site_patterns_dir>
+</skill_metadata>
