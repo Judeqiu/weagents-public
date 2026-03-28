@@ -1,80 +1,219 @@
 ---
 name: skill-puller
-description: Download specific skills from GitHub repository to remote VMs. Fast, lightweight skill downloader using git sparse-checkout - only downloads the requested skill folder without cloning the entire repository. Requires public GitHub repository.
+description: Download and install skills from the GitHub repository to this OpenClaw instance. Use when you need to get a skill from GitHub, install a new skill, or update an existing skill. Fast download using git sparse-checkout.
 version: 1.0.0
 ---
 
-# Skill Puller
+# Skill Puller - For OpenClaw Agents
 
-Download specific skills from the GitHub repository directly to remote VMs. This is faster than skill-deployer because it downloads directly on the target VM using `git sparse-checkout`, avoiding the need to upload from local machine.
+This skill allows YOU (the OpenClaw agent) to download and install skills directly from the GitHub repository to this VM.
 
-## Prerequisites
+## When to Use This Skill
 
-⚠️ **The GitHub repository must be PUBLIC for this tool to work.**
+- You need a skill that is not currently installed
+- You want to update an existing skill to the latest version
+- The user asks you to install a specific skill from GitHub
 
-If the repository is private, use `skill-deployer` instead (which uploads from your local machine).
+## Prerequisites (IMPORTANT)
 
-## How It Works
+⚠️ **The GitHub repository MUST be public** for this to work.
 
-1. Uses `git sparse-checkout` to download only the specific skill folder from GitHub
-2. Downloads directly on the remote VM (no local upload needed)
-3. Places skill in `~/.openclaw/workspace/skills/`
-4. Sets proper permissions automatically
+If the repository is private, ask the user to use `skill-deployer` instead.
 
-## Quick Usage
+## How to Install a Skill - Step by Step
+
+### Step 1: Check if the Skill Already Exists
+
+First, check if the skill is already installed:
 
 ```bash
-# Pull a skill to default host (kai)
+ls -la ~/.openclaw/workspace/skills/
+```
+
+If the skill exists and you want the latest version, use `--force` flag later.
+
+### Step 2: Run the Pull Script
+
+Navigate to the skill-puller directory and run the pull script:
+
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py SKILL_NAME
+```
+
+Replace `SKILL_NAME` with the actual skill name (e.g., `lextok-search`, `producthunter`, etc.)
+
+### Step 3: Verify Installation
+
+Check that the skill was downloaded successfully:
+
+```bash
+ls -la ~/.openclaw/workspace/skills/SKILL_NAME/
+cat ~/.openclaw/workspace/skills/SKILL_NAME/SKILL.md | head -20
+```
+
+## Available Commands
+
+### Install a Single Skill
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
 ./pull.py lextok-search
+```
 
-# Pull multiple skills
-./pull.py lextok-search producthunter caddy-manager
+### Install Multiple Skills at Once
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py lextok-search producthunter marketing-creator
+```
 
-# Pull to specific host
-./pull.py marketing-creator --host spost
-
-# Force re-download (remove existing first)
+### Force Re-install (Update Existing Skill)
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
 ./pull.py lextok-search --force
+```
 
-# List available skills
+### List All Available Skills
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
 ./pull.py --list
 ```
 
-## Requirements
+## Workflow for Installing a New Skill
 
-- GitHub repository must be **public**
-- `git` command on remote VM (auto-installed if missing)
-- SSH access to target hosts configured in `~/.ssh/config`
+When the user asks you to install a skill, follow this workflow:
 
-## Features
+### 1. Ask for the Skill Name (if not provided)
 
-- ✅ **Fast** - Downloads only the skill folder, not entire repo
-- ✅ **Lightweight** - No local dependencies, runs entirely on remote VM
-- ✅ **Smart** - Skips download if skill already exists (use `--force` to override)
-- ✅ **Multiple skills** - Can pull multiple skills in one command
-- ✅ **Auto permissions** - Sets executable permissions on scripts
+> "Which skill would you like me to install? You can check available skills with `./pull.py --list`"
 
-## Command Reference
+### 2. Check Current Skills
 
-| Command | Description |
-|---------|-------------|
-| `./pull.py SKILL` | Pull skill to default host |
-| `./pull.py SKILL1 SKILL2` | Pull multiple skills |
-| `./pull.py SKILL --host HOST` | Pull to specific host |
-| `./pull.py SKILL --force` | Force re-download |
-| `./pull.py --list` | List available skills on GitHub |
+```bash
+ls ~/.openclaw/workspace/skills/
+```
 
-## GitHub Repository
+### 3. Install the Skill
 
-- **Repo**: `https://github.com/Judeqiu/weagents`
-- **Skills Path**: `trunk/skills/{skill-name}/`
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py SKILL_NAME
+```
+
+### 4. Confirm Success
+
+```bash
+ls ~/.openclaw/workspace/skills/SKILL_NAME/
+```
+
+### 5. Report to User
+
+> "✅ Successfully installed `SKILL_NAME` skill. It's now available at `~/.openclaw/workspace/skills/SKILL_NAME/`"
+
+## Example Scenarios
+
+### Scenario 1: User asks "Install the lextok-search skill"
+
+```bash
+# Check if already exists
+ls ~/.openclaw/workspace/skills/ | grep lextok-search
+
+# If not found, install it
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py lextok-search
+
+# Verify
+ls ~/.openclaw/workspace/skills/lextok-search/
+```
+
+### Scenario 2: User asks "What skills are available?"
+
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py --list
+```
+
+Then show the list to the user and ask which one they want.
+
+### Scenario 3: User asks "Update the producthunter skill"
+
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py producthunter --force
+```
+
+## Troubleshooting
+
+### "Repository appears to be PRIVATE"
+
+This means the GitHub repository is not public. Tell the user:
+
+> "The repository appears to be private. Please either:
+> 1. Make the repository public on GitHub, OR
+> 2. Use `skill-deployer` from their local machine"
+
+### "Skill not found in repository"
+
+The skill name might be incorrect. List available skills:
+
+```bash
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py --list
+```
+
+### "git not found"
+
+Git will be auto-installed. Just wait for the installation to complete.
+
+## Configuration
+
+- **Default Host**: Runs on the current VM (no `--host` needed for OpenClaw)
+- **Repository**: `https://github.com/Judeqiu/weagents.git`
+- **Skills Path**: `~/.openclaw/workspace/skills/`
+
+## How It Works (Technical Details)
+
+1. Uses `git sparse-checkout` to download only the specific skill folder
+2. Downloads directly from GitHub to `~/.openclaw/workspace/skills/`
+3. Sets executable permissions on scripts automatically
+4. Cleans up temporary files after download
 
 ## Comparison with Skill Deployer
 
-| Feature | Skill Deployer | Skill Puller |
-|---------|---------------|--------------|
-| Source | Local files | GitHub repo |
-| Upload method | SCP from local | Direct download on VM |
-| Speed | Depends on local upload | Fast (direct download) |
-| Use case | Deploy local changes | Get latest from GitHub |
-| Network efficiency | Uploads from local | Downloads on VM |
+| | Skill Puller | Skill Deployer |
+|---|---|---|
+| **Source** | GitHub repository | Local machine |
+| **Who runs it** | OpenClaw agent on VM | User on their computer |
+| **Speed** | Fast (direct download) | Depends on upload speed |
+| **Repo requirement** | Must be public | Works with private repos |
+| **Use case** | Get latest from GitHub | Deploy local changes |
+
+## Quick Reference Card
+
+```bash
+# INSTALL SKILL
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py SKILL_NAME
+
+# INSTALL MULTIPLE
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py skill1 skill2 skill3
+
+# UPDATE (force re-download)
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py SKILL_NAME --force
+
+# LIST AVAILABLE
+cd ~/.openclaw/workspace/skills/skill-puller
+./pull.py --list
+
+# CHECK INSTALLED SKILLS
+ls ~/.openclaw/workspace/skills/
+```
+
+## Important Notes for Agents
+
+1. **Always check if skill exists first** - Avoid unnecessary re-downloads
+2. **Use `--force` for updates** - To get the latest version of an existing skill
+3. **Report errors clearly** - If the repo is private, explain the situation to the user
+4. **Verify after installation** - Always check the skill directory was created
+5. **This VM only** - The skill is installed on THIS VM, not user's local machine

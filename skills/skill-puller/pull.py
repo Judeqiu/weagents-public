@@ -316,15 +316,18 @@ def pull_single_skill(host: str, skill_name: str, force: bool = False) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Download skills from GitHub to remote VMs",
+        description="Download skills from GitHub repository to this OpenClaw VM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+For OpenClaw Agents:
+  ./pull.py SKILL_NAME            # Install a skill from GitHub
+  ./pull.py --list                # See what skills are available
+  ./pull.py SKILL_NAME --force    # Update/reinstall a skill
+
 Examples:
-  ./pull.py lextok-search                    # Pull to default host
-  ./pull.py lextok-search producthunter      # Pull multiple skills
-  ./pull.py marketing-creator --host spost   # Pull to specific host
-  ./pull.py lextok-search --force            # Force re-download
-  ./pull.py --list                           # List available skills
+  ./pull.py lextok-search
+  ./pull.py lextok-search producthunter caddy-manager
+  ./pull.py marketing-creator --force
         """
     )
     
@@ -367,10 +370,13 @@ Examples:
         return
     
     # Validate skill names
-    if not args.skills:
+    if not args.skills and not args.list:
         parser.print_help()
         print("\n❌ Error: No skill names provided")
-        print("   Use --list to see available skills")
+        print("\n💡 For OpenClaw agents:")
+        print("   1. To list available skills: ./pull.py --list")
+        print("   2. To install a skill: ./pull.py SKILL_NAME")
+        print("   3. Example: ./pull.py lextok-search")
         sys.exit(1)
     
     # Pull each skill
