@@ -7,6 +7,22 @@ description: Manage and troubleshoot Kimi model configurations for OpenClaw agen
 
 Manage and troubleshoot Kimi model configurations for OpenClaw agents.
 
+## ⚠️ CRITICAL: kimi-code vs kimi-k2.5 Are DIFFERENT!
+
+**kimi-code and kimi-k2.5 are from DIFFERENT companies with different APIs:**
+
+| | **kimi-code** | **kimi-k2.5** |
+|---|---|---|
+| **Company** | Kimi (kimi.com) | Moonshot AI (moonshot.ai) |
+| **Endpoint** | api.kimi.com/coding/v1 | api.moonshot.ai/v1 |
+| **Model ID** | kimi-for-coding | kimi-k2.5 |
+| **API Key** | KIMI_CODE_API_KEY | MOONSHOT_API_KEY |
+| **Key Prefix** | sk-kimi-... | sk-... |
+
+**Always verify which model/provider is needed before configuration!**
+
+---
+
 ## How to Engage This Skill
 
 > **User says:** *"My agent is using the wrong model"*

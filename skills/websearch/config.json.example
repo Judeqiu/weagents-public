@@ -1,0 +1,12 @@
+{
+  "brave_api_key": "YOUR_BRAVE_API_KEY_HERE",
+  "timeout": 30,
+  "max_retries": 3,
+  "cache_enabled": true,
+  "cache_ttl": 3600,
+  "safe_search": "moderate",
+  "country": null,
+  "language": null,
+  "proxy": null,
+  "user_agent_rotation": true
+}
