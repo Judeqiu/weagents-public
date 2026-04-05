@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Darkest Collection | Amazon UK</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+            color: white;
+        }
+        
+        header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 60px rgba(255,255,255,0.1);
+        }
+        
+        header p { 
+            font-size: 1.3rem; 
+            opacity: 0.7; 
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.8);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(255,255,255,0.95);
+            color: #0a0a0a;
+            border-color: white;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            padding: 20px 0;
+        }
+        
+        .product-card {
+            background: linear-gradient(145deg, #1e1e2e 0%, #252538 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1), 0 0 40px rgba(100,100,255,0.1);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 260px;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+            transition: transform 0.3s ease;
+        }
+        
+        .product-card:hover .product-image img {
+            transform: scale(1.05);
+        }
+        
+        .product-info {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .category-tag {
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 30px;
+            margin-bottom: 12px;
+            align-self: flex-start;
+        }
+        
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .product-rating {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stars { color: #ffc107; font-size: 1rem; letter-spacing: 2px; }
+        .rating-value { font-weight: 700; color: #ffc107; }
+        .reviews-count { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+        
+        .product-price {
+            margin-top: auto;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .current-price {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #4ade80;
+        }
+        
+        .original-price {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.4);
+            text-decoration: line-through;
+            margin-left: 10px;
+        }
+        
+        .price-unavailable {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.5);
+            font-style: italic;
+        }
+        
+        .buy-button {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin-top: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .buy-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .stats-bar {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 30px;
+            margin: 40px auto;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-around;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat-item h3 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-item p { opacity: 0.6; font-size: 1rem; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        footer {
+            text-align: center;
+            padding: 50px 20px;
+            color: rgba(255,255,255,0.4);
+        }
+        
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.2rem; }
+            header p { font-size: 1.1rem; }
+            .products-grid { grid-template-columns: 1fr; }
+            .stats-bar { flex-direction: column; gap: 25px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌑 The Darkest Collection</h1>
+            <p>Curated black and dark aesthetic products from Amazon UK. Elevate your space with the power of darkness.</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <h3>20</h3>
+                <p>Products</p>
+            </div>
+            <div class="stat-item">
+                <h3>2</h3>
+                <p>Categories</p>
+            </div>
+            <div class="stat-item">
+                <h3>33.0</h3>
+                <p>Avg Rating</p>
+            </div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="electronics">Electronics</button>
+            <button class="filter-btn" data-filter="home">Home & Decor</button>
+        </div>
+
+        <div class="products-grid" id="productsGrid"></div>
+
+        <footer>
+            <p>Last updated: March 25, 2026 | Products from Amazon UK</p>
+            <p style="margin-top: 10px; font-size: 0.85rem;">As an Amazon Associate, we earn from qualifying purchases.</p>
+        </footer>
+    </div>
+
+    <script>
+        const products = [{"title": "Kare Design Deco Object Thinking Gorilla Head, Black, Modern, Handmade", "price": "\u00a3303.27", "original_price": "", "rating": "4.8", "reviews": "38", "link": "https://www.amazon.co.uk/s?k=Kare+Design+Thinking+Gorilla+Head+Black", "image": "https://m.media-amazon.com/images/I/81X9x7+uDzL._AC_UL320_.jpg", "category": "home"}, {"title": "Clamp on Desk Shelf, 24in 2-Tier Office Desk Shelves Organizer, Black", "price": "\u00a3176.83", "original_price": "", "rating": "4.7", "reviews": "42", "link": "https://www.amazon.co.uk/s?k=Clamp+on+Desk+Shelf+Black", "image": "https://m.media-amazon.com/images/I/71vWVzFZMAL._AC_UL320_.jpg", "category": "electronics"}, {"title": "Madison Park Modern Luxe Geomatric Art Sculpture, Black/Gold", "price": "\u00a3164.63", "original_price": "", "rating": "4.4", "reviews": "91", "link": "https://www.amazon.co.uk/s?k=Madison+Park+Geometric+Sculpture+Black", "image": "https://m.media-amazon.com/images/I/71NCK-fueOL._AC_UL320_.jpg", "category": "home"}, {"title": "Kare Design Deco Object King Skull, Black, Elegant, Handpainted", "price": "\u00a3154.19", "original_price": "", "rating": "4.4", "reviews": "50", "link": "https://www.amazon.co.uk/s?k=Kare+Design+King+Skull+Black", "image": "https://m.media-amazon.com/images/I/71HhzGbXCjL._AC_UL320_.jpg", "category": "home"}, {"title": "Superior Cotton 10 Piece Towel Set, Black", "price": "", "original_price": "4.4", "rating": "575", "reviews": "https://www.amazon.co.uk/s?k=Superior+Cotton+Towel+Set+Black", "link": "https://m.media-amazon.com/images/I/81w0BiG2QPL._AC_UL320_.jpg", "image": "home", "category": null}, {"title": "Kare Design Deco Object Quiet Face, Black, Modern Statue", "price": "\u00a3107.62", "original_price": "", "rating": "5.0", "reviews": "6", "link": "https://www.amazon.co.uk/s?k=Kare+Design+Quiet+Face+Black", "image": "https://m.media-amazon.com/images/I/517mprU-S1L._AC_UL320_.jpg", "category": "home"}, {"title": "Blulu 4 Pcs Wire Wall Basket with Hooks, Black Metal", "price": "\u00a397.87", "original_price": "\u00a324.47", "rating": "4.2", "reviews": "8", "link": "https://www.amazon.co.uk/s?k=Blulu+Wire+Wall+Basket+Black", "image": "https://m.media-amazon.com/images/I/81+mHbUfdSL._AC_UL320_.jpg", "category": "home"}, {"title": "OLANLY Bathroom Rugs Sets 3 Piece, Black", "price": "\u00a395.80", "original_price": "\u00a319.16", "rating": "4.2", "reviews": "336", "link": "https://www.amazon.co.uk/s?k=OLANLY+Bathroom+Rugs+Set+Black", "image": "https://m.media-amazon.com/images/I/71NgYX4EB9L._AC_UL320_.jpg", "category": "home"}, {"title": "Clara Clark Bathroom Set - Black Bathroom Accessories Set, 19PC", "price": "\u00a383.26", "original_price": "", "rating": "4.5", "reviews": "96", "link": "https://www.amazon.co.uk/s?k=Clara+Clark+Bathroom+Set+Black", "image": "https://m.media-amazon.com/images/I/814gznv9sGL._AC_UL320_.jpg", "category": "home"}, {"title": "Black Bathroom Set - 10PC Bathroom Accessories Set", "price": "\u00a375.50", "original_price": "", "rating": "4.0", "reviews": "25", "link": "https://www.amazon.co.uk/s?k=Black+Bathroom+Accessories+Set", "image": "https://m.media-amazon.com/images/I/61nR-79o18L._AC_UL320_.jpg", "category": "home"}, {"title": "XJBTBA Gaming Desk, 60'' Gaming Desk with Hutch and LED Lights, Black", "price": "\u00a3289.99", "original_price": "", "rating": "4.3", "reviews": "156", "link": "https://www.amazon.co.uk/s?k=XJBTBA+Gaming+Desk+Black+LED", "image": "https://m.media-amazon.com/images/I/81MnWCWyLcL._AC_UL320_.jpg", "category": "electronics"}, {"title": "VOSAREA 3pcs Cable Holder Cord Keeper, Black", "price": "\u00a312.99", "original_price": "", "rating": "4.5", "reviews": "892", "link": "https://www.amazon.co.uk/s?k=VOSAREA+Cable+Holder+Black", "image": "https://m.media-amazon.com/images/I/61-IhzLqUxL._AC_UL320_.jpg", "category": "electronics"}, {"title": "Excel Shortcuts Mouse Pad, Black Desk Mat", "price": "\u00a315.99", "original_price": "", "rating": "4.6", "reviews": "2341", "link": "https://www.amazon.co.uk/s?k=Excel+Shortcuts+Mouse+Pad", "image": "https://m.media-amazon.com/images/I/61q0p3jJbEL._AC_UL320_.jpg", "category": "electronics"}, {"title": "Wireless Charging Desk Mat with Detachable Charger, Black", "price": "\u00a345.99", "original_price": "\u00a359.99", "rating": "4.4", "reviews": "127", "link": "https://www.amazon.co.uk/s?k=Wireless+Charging+Desk+Mat+Black", "image": "https://m.media-amazon.com/images/I/71BAbPWKf9L._AC_UL320_.jpg", "category": "electronics"}, {"title": "Black Metal Shoe Bench with Synthetic Leather Upholstery", "price": "\u00a389.99", "original_price": "", "rating": "4.3", "reviews": "67", "link": "https://www.amazon.co.uk/s?k=Black+Metal+Shoe+Bench", "image": "https://m.media-amazon.com/images/I/61TlfKVaORL._AC_UL320_.jpg", "category": "home"}, {"title": "Adjustable Metal Shoe Rack - Space-Saving Black Organizer", "price": "\u00a349.99", "original_price": "\u00a369.99", "rating": "4.5", "reviews": "234", "link": "https://www.amazon.co.uk/s?k=Adjustable+Metal+Shoe+Rack+Black", "image": "https://m.media-amazon.com/images/I/71LAvv1IfAL._AC_UL320_.jpg", "category": "home"}, {"title": "Deer Head Wall Mount Art, Black Sculptures Statues", "price": "\u00a339.99", "original_price": "", "rating": "4.2", "reviews": "89", "link": "https://www.amazon.co.uk/s?k=Deer+Head+Wall+Mount+Black", "image": "https://m.media-amazon.com/images/I/51z1heF835L._AC_UL320_.jpg", "category": "home"}, {"title": "JETech Case for iPad Air 11-Inch, Black", "price": "\u00a318.99", "original_price": "", "rating": "4.7", "reviews": "3421", "link": "https://www.amazon.co.uk/s?k=JETech+iPad+Air+Case+Black", "image": "https://m.media-amazon.com/images/I/61+NHdvjnQL._AC_UL320_.jpg", "category": "electronics"}, {"title": "UESWILL Smooth Matte Hard Case for MacBook, Black", "price": "\u00a322.99", "original_price": "", "rating": "4.6", "reviews": "1876", "link": "https://www.amazon.co.uk/s?k=UESWILL+Matte+MacBook+Case+Black", "image": "https://m.media-amazon.com/images/I/51X7WdgyC2L._AC_UL320_.jpg", "category": "electronics"}, {"title": "AMUCK Abstract Mask Statue, Black Nordic Decor", "price": "\u00a335.50", "original_price": "", "rating": "4.1", "reviews": "45", "link": "https://www.amazon.co.uk/s?k=AMUCK+Abstract+Mask+Statue+Black", "image": "https://m.media-amazon.com/images/I/41eS7--44vL._AC_UL320_.jpg", "category": "home"}];
+        
+        const categoryLabels = {"electronics": "Electronics", "fashion": "Fashion", "home": "Home & Decor", "other": "Other"};
+        
+        function getStarsHTML(rating) {
+            if (!rating) return '';
+            const fullStars = Math.floor(parseFloat(rating));
+            let html = '<span class="stars">';
+            for (let i = 0; i < fullStars; i++) html += '★';
+            html += '</span>';
+            return html;
+        }
+        
+        function renderProducts(filter = 'all') {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            
+            const filtered = filter === 'all' 
+                ? products 
+                : products.filter(p => p.category === filter);
+            
+            filtered.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                
+                const priceHTML = product.price 
+                    ? `<span class="current-price">${product.price}</span>${product.original_price ? `<span class="original-price">${product.original_price}</span>` : ''}`
+                    : '<span class="price-unavailable">See price on Amazon</span>';
+                
+                const ratingHTML = product.rating 
+                    ? `<div class="product-rating">${getStarsHTML(product.rating)}<span class="rating-value">${product.rating}</span>${product.reviews ? `<span class="reviews-count">(${product.reviews} reviews)</span>` : ''}</div>`
+                    : '';
+                
+                card.innerHTML = `
+                    <div class="product-image">
+                        <img src="${product.image || 'https://via.placeholder.com/300x250?text=No+Image'}" alt="${product.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x250?text=Image+Unavailable'">
+                    </div>
+                    <div class="product-info">
+                        <span class="category-tag">${categoryLabels[product.category] || product.category}</span>
+                        <h3 class="product-title">${product.title}</h3>
+                        ${ratingHTML}
+                        <div class="product-price">${priceHTML}</div>
+                        <a href="${product.link}" target="_blank" rel="noopener" class="buy-button">View on Amazon →</a>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderProducts(btn.dataset.filter);
+            });
+        });
+        
+        renderProducts();
+    </script>
+</body>
+</html>

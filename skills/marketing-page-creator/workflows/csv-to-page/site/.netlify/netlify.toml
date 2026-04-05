@@ -1,0 +1,26 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/zhengqingqiu/projects/weagents/skills/marketing-page-creator/workflows/csv-to-page/site"
+publishOrigin = "default"
+base = "/Users/zhengqingqiu/projects/weagents/skills/marketing-page-creator/workflows/csv-to-page/site"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
